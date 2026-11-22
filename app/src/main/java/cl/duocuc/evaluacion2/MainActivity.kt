@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.navigation.AppNavigation
 import cl.duocuc.evaluacion2.ui.theme.MaxTheme
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
@@ -19,10 +20,14 @@ import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
  */
 class MainActivity : ComponentActivity() {
 
-    private val loginViewModel: LoginViewModel by viewModels()
+    private val sessionManager = SessionManager()
+
+    private val loginViewModel: LoginViewModel by viewModels {
+        LoginViewModel.factory(application, sessionManager)
+    }
 
     private val oportunidadViewModel: OportunidadViewModel by viewModels {
-        OportunidadViewModel.factory(application)
+        OportunidadViewModel.factory(application, sessionManager)
     }
 
     private val qrViewModel: QrViewModel by viewModels()

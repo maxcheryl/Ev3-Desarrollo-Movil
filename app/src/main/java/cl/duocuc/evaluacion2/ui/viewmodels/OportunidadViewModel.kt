@@ -6,14 +6,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import cl.duocuc.evaluacion2.data.local.AppDatabase
+import cl.duocuc.evaluacion2.data.local.DatabaseSeed
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
+import cl.duocuc.evaluacion2.data.model.PerfilUsuario
 import cl.duocuc.evaluacion2.data.repository.OportunidadRepository
+import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.validation.OportunidadValidator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,15 +36,29 @@ data class OportunidadEditorUiState(
  * Expone la lista reactiva (Room + Flow) y el estado del editor
  * del formulario de creación/edición.
  */
-class OportunidadViewModel(application: Application) : AndroidViewModel(application) {
+class OportunidadViewModel(
+    application: Application,
+    private val sessionManager: SessionManager
+) : AndroidViewModel(application) {
 
     private val repository = OportunidadRepository(
         AppDatabase.getInstance(application).opportunityDao()
     )
 
-    val oportunidades: StateFlow<List<OpportunityEntity>> = repository.observeAll()
-        // La consulta de Room queda viva solo mientras alguien la esté mirando
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val oportunidades: StateFlow<List<OpportunityEntity>> =
+        combine(repository.observeAll(), sessionManager.usuario) { lista, usuario ->
+            if (usuario == null) {
+                emptyList()
+            } else when (usuario.perfil) {
+                PerfilUsuario.SUPERVISOR_COMERCIAL -> lista
+                PerfilUsuario.EJECUTIVO_COMERCIAL ->
+                    lista.filter { it.responsableId == usuario.id }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val esSupervisor: StateFlow<Boolean> = sessionManager.usuario
+        .map { it?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val _cargando = MutableStateFlow(true)
     val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
@@ -52,6 +71,7 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 repository.semillarSiVacia()
+                repository.asignarResponsablesPendientes(DatabaseSeed.USUARIO_DALI_ID)
             } finally {
                 _cargando.value = false
             }
@@ -64,7 +84,9 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
 
     /** Prepara el formulario para una oportunidad nueva. */
     fun beginNueva() {
-        _editor.value = OportunidadEditorUiState()
+        _editor.value = OportunidadEditorUiState(
+            form = OportunidadFormState(responsableId = sessionManager.actual?.id)
+        )
     }
 
     /** Prepara el formulario con los datos actuales de una oportunidad. */
@@ -73,6 +95,12 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
         if (existente == null) {
             _editor.update {
                 it.copy(mensajeError = "No se encontró la oportunidad solicitada.")
+            }
+            return
+        }
+        if (!puedeGestionar(existente)) {
+            _editor.update {
+                it.copy(mensajeError = "No tienes permiso para editar esta oportunidad.")
             }
             return
         }
@@ -172,7 +200,33 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
 
     /** Valida el formulario y, si es válido, guarda en Room. */
     fun guardarOportunidad(onListo: (Long) -> Unit) {
+        val usuario = sessionManager.actual
+        if (usuario == null) {
+            _editor.update {
+                it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.")
+            }
+            return
+        }
+
         val actual = _editor.value
+        val esNueva = actual.form.id == 0L
+
+        if (!esNueva) {
+            val existente = oportunidades.value.firstOrNull { it.id == actual.form.id }
+            if (existente == null) {
+                _editor.update {
+                    it.copy(mensajeError = "No se encontró la oportunidad solicitada.")
+                }
+                return
+            }
+            if (!puedeGestionar(existente)) {
+                _editor.update {
+                    it.copy(mensajeError = "No tienes permiso para editar esta oportunidad.")
+                }
+                return
+            }
+        }
+
         val errores = OportunidadValidator.validar(actual.form)
 
         if (errores.hayErrores) {
@@ -197,7 +251,7 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
             eventoId = actual.form.eventoId,
             organizacionId = actual.form.organizacionId,
             contactoId = actual.form.contactoId,
-            responsableId = actual.form.responsableId,
+            responsableId = if (esNueva) usuario.id else actual.form.responsableId ?: usuario.id,
             publicoEsperado = actual.form.publicoEsperado.trim(),
             fechaCreacion = actual.form.fechaCreacion ?: System.currentTimeMillis()
         )
@@ -219,6 +273,16 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun eliminarOportunidad(id: Long, onListo: () -> Unit, onError: (String) -> Unit) {
+        val existente = oportunidades.value.firstOrNull { it.id == id }
+        if (existente == null) {
+            onError("No se encontró la oportunidad para eliminarla.")
+            return
+        }
+        if (!puedeGestionar(existente)) {
+            onError("No tienes permiso para eliminar esta oportunidad.")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 if (repository.eliminar(id) == 0) {
@@ -234,14 +298,25 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    private fun puedeGestionar(oportunidad: OpportunityEntity): Boolean {
+        val usuario = sessionManager.actual ?: return false
+        return when (usuario.perfil) {
+            PerfilUsuario.SUPERVISOR_COMERCIAL -> true
+            PerfilUsuario.EJECUTIVO_COMERCIAL -> oportunidad.responsableId == usuario.id
+        }
+    }
+
     companion object {
         // Factory clásica para inyectarle el Application (Room lo necesita)
-        fun factory(application: Application): ViewModelProvider.Factory =
+        fun factory(
+            application: Application,
+            sessionManager: SessionManager
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(OportunidadViewModel::class.java))
-                    return OportunidadViewModel(application) as T
+                    return OportunidadViewModel(application, sessionManager) as T
                 }
             }
     }

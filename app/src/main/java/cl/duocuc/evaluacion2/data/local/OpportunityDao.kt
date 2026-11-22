@@ -29,6 +29,9 @@ interface OpportunityDao {
     @Update
     suspend fun update(oportunidad: OpportunityEntity)
 
+    @Query("UPDATE oportunidades SET responsableId = :responsableId WHERE responsableId IS NULL")
+    suspend fun assignNullResponsible(responsableId: Long): Int
+
     @Query("DELETE FROM oportunidades WHERE id = :id")
     suspend fun deleteById(id: Long): Int
 }

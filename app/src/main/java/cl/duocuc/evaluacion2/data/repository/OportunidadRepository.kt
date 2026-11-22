@@ -19,6 +19,9 @@ class OportunidadRepository(private val dao: OpportunityDao) {
 
     suspend fun contar(): Int = dao.count()
 
+    suspend fun asignarResponsablesPendientes(responsableId: Long): Int =
+        dao.assignNullResponsible(responsableId)
+
     suspend fun eliminar(id: Long): Int = dao.deleteById(id)
 
     /** Inserta una oportunidad nueva o actualiza una existente. Devuelve el id. */

@@ -47,12 +47,26 @@ fun OportunidadListScreen(
 ) {
     val oportunidades by viewModel.oportunidades.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
+    val esSupervisor by viewModel.esSupervisor.collectAsState()
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Oportunidades", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Column {
+                        Text("Oportunidades", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = if (esSupervisor) {
+                                "Todas las oportunidades"
+                            } else {
+                                "Mis oportunidades"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -94,7 +108,11 @@ fun OportunidadListScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Aún no hay oportunidades registradas.",
+                        text = if (esSupervisor) {
+                            "Aún no hay oportunidades registradas."
+                        } else {
+                            "Aún no tienes oportunidades registradas."
+                        },
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(

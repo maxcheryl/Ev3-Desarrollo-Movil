@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.BusinessCenter
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -39,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 
 /**
- * Pantalla de inicio de sesión con cuenta ficticia de demostración.
+ * Pantalla de inicio de sesión contra los usuarios locales de demostración.
  */
 @Composable
 fun LoginScreen(
@@ -92,6 +93,7 @@ fun LoginScreen(
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             isError = estado.correoError != null,
+            enabled = !estado.cargando,
             supportingText = {
                 estado.correoError?.let {
                     Text(text = it, color = MaterialTheme.colorScheme.error)
@@ -112,6 +114,7 @@ fun LoginScreen(
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             isError = estado.claveError != null,
+            enabled = !estado.cargando,
             supportingText = {
                 estado.claveError?.let {
                     Text(text = it, color = MaterialTheme.colorScheme.error)
@@ -138,18 +141,28 @@ fun LoginScreen(
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                if (viewModel.ingresar()) onLoginExitoso()
-            },
+            onClick = { viewModel.ingresar(onLoginExitoso) },
+            enabled = !estado.cargando,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Ingresar")
+            if (estado.cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Ingresar")
+            }
         }
 
         Spacer(Modifier.height(16.dp))
 
         Text(
-            text = "Cuenta de demostración:\n${LoginViewModel.DEMO_CORREO} · ${LoginViewModel.DEMO_CLAVE}",
+            text = "Cuentas de demostración:\n" +
+                LoginViewModel.cuentasDemo.joinToString("\n") {
+                    "${it.etiqueta}: ${it.correo} · ${it.clave}"
+                },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

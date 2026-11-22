@@ -105,6 +105,14 @@ fun FormularioOportunidadScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
+            if (id == 0L) {
+                Text(
+                    text = "La oportunidad quedará asignada a tu usuario.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             FormTextField(
                 label = "Nombre de la oportunidad *",
                 value = editor.form.nombre,

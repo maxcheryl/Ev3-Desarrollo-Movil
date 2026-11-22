@@ -6,6 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,6 +54,22 @@ fun AppNavigation(
     ubicacionViewModel: UbicacionViewModel
 ) {
     val navController = rememberNavController()
+    val usuario by loginViewModel.usuario.collectAsState()
+
+    // Si la sesión en memoria se perdió (por ejemplo, tras recrear el proceso)
+    // y la navegación restauró una pantalla protegida, se vuelve al login.
+    LaunchedEffect(Unit) {
+        val rutaActual = navController.currentDestination?.route
+        if (usuario == null &&
+            rutaActual != null &&
+            rutaActual != Rutas.PantallaInicial.route &&
+            rutaActual != Rutas.Login.route
+        ) {
+            navController.navigate(Rutas.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -78,7 +97,7 @@ fun AppNavigation(
                 viewModel = loginViewModel,
                 onLoginExitoso = {
                     navController.navigate(Rutas.MenuPrincipal.route) {
-                        popUpTo(Rutas.PantallaInicial.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -86,7 +105,8 @@ fun AppNavigation(
 
         composable(Rutas.MenuPrincipal.route) {
             MenuScreen(
-                nombre = LoginViewModel.DEMO_NOMBRE,
+                nombre = usuario?.nombre ?: "Usuario",
+                perfil = usuario?.perfil?.etiqueta ?: "",
                 onOportunidades = { navController.navigate(Rutas.Oportunidades.route) },
                 onEscanearQr = { navController.navigate(Rutas.EscanearQr.route) },
                 onUbicacion = { navController.navigate(Rutas.Ubicacion.route) },

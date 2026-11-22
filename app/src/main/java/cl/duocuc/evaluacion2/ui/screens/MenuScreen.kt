@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MenuScreen(
     nombre: String,
+    perfil: String,
     onOportunidades: () -> Unit,
     onEscanearQr: () -> Unit,
     onUbicacion: () -> Unit,
@@ -53,6 +54,12 @@ fun MenuScreen(
             text = "Hola, $nombre",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = perfil,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
         )
 
         Text(
