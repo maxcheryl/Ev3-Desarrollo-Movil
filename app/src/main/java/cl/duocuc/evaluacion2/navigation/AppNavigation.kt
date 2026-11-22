@@ -14,16 +14,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import cl.duocuc.evaluacion2.ui.screens.CatalogosScreen
+import cl.duocuc.evaluacion2.ui.screens.ContactoFormScreen
+import cl.duocuc.evaluacion2.ui.screens.ContactoListScreen
 import cl.duocuc.evaluacion2.ui.screens.EscanearQrScreen
+import cl.duocuc.evaluacion2.ui.screens.EventoFormScreen
+import cl.duocuc.evaluacion2.ui.screens.EventoListScreen
 import cl.duocuc.evaluacion2.ui.screens.FormularioOportunidadScreen
 import cl.duocuc.evaluacion2.ui.screens.LoginScreen
 import cl.duocuc.evaluacion2.ui.screens.MenuScreen
 import cl.duocuc.evaluacion2.ui.screens.OportunidadDetailScreen
 import cl.duocuc.evaluacion2.ui.screens.OportunidadListScreen
+import cl.duocuc.evaluacion2.ui.screens.OrganizacionFormScreen
+import cl.duocuc.evaluacion2.ui.screens.OrganizacionListScreen
 import cl.duocuc.evaluacion2.ui.screens.PantallaInicialScreen
 import cl.duocuc.evaluacion2.ui.screens.UbicacionScreen
+import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
@@ -33,6 +43,19 @@ sealed class Rutas(val route: String) {
     object Login : Rutas("login")
     object MenuPrincipal : Rutas("menu_principal")
     object Oportunidades : Rutas("oportunidades")
+    object Catalogos : Rutas("catalogos")
+    object Organizaciones : Rutas("organizaciones")
+    object FormularioOrganizacion : Rutas("formulario_organizacion?id={id}") {
+        fun conId(id: Long) = "formulario_organizacion?id=$id"
+    }
+    object Contactos : Rutas("contactos")
+    object FormularioContacto : Rutas("formulario_contacto?id={id}") {
+        fun conId(id: Long) = "formulario_contacto?id=$id"
+    }
+    object Eventos : Rutas("eventos")
+    object FormularioEvento : Rutas("formulario_evento?id={id}") {
+        fun conId(id: Long) = "formulario_evento?id=$id"
+    }
     object EscanearQr : Rutas("escanear_qr")
     object Ubicacion : Rutas("ubicacion")
     object DetalleOportunidad : Rutas("detalle_oportunidad/{id}") {
@@ -50,6 +73,9 @@ sealed class Rutas(val route: String) {
 fun AppNavigation(
     loginViewModel: LoginViewModel,
     oportunidadViewModel: OportunidadViewModel,
+    organizacionViewModel: OrganizacionViewModel,
+    contactoViewModel: ContactoViewModel,
+    eventoViewModel: EventoViewModel,
     qrViewModel: QrViewModel,
     ubicacionViewModel: UbicacionViewModel
 ) {
@@ -108,6 +134,7 @@ fun AppNavigation(
                 nombre = usuario?.nombre ?: "Usuario",
                 perfil = usuario?.perfil?.etiqueta ?: "",
                 onOportunidades = { navController.navigate(Rutas.Oportunidades.route) },
+                onCatalogos = { navController.navigate(Rutas.Catalogos.route) },
                 onEscanearQr = { navController.navigate(Rutas.EscanearQr.route) },
                 onUbicacion = { navController.navigate(Rutas.Ubicacion.route) },
                 onCerrarSesion = {
@@ -118,6 +145,108 @@ fun AppNavigation(
                         popUpTo(0) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable(Rutas.Catalogos.route) {
+            CatalogosScreen(
+                onVolver = { navController.popBackStack() },
+                onOrganizaciones = { navController.navigate(Rutas.Organizaciones.route) },
+                onContactos = { navController.navigate(Rutas.Contactos.route) },
+                onEventos = { navController.navigate(Rutas.Eventos.route) }
+            )
+        }
+
+        composable(Rutas.Organizaciones.route) {
+            OrganizacionListScreen(
+                viewModel = organizacionViewModel,
+                onVolver = { navController.popBackStack() },
+                onNueva = {
+                    navController.navigate(Rutas.FormularioOrganizacion.conId(0L))
+                },
+                onSeleccionar = { id ->
+                    navController.navigate(Rutas.FormularioOrganizacion.conId(id))
+                }
+            )
+        }
+
+        composable(
+            route = Rutas.FormularioOrganizacion.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            OrganizacionFormScreen(
+                viewModel = organizacionViewModel,
+                organizacionId = id,
+                onVolver = { navController.popBackStack() },
+                onGuardado = { navController.popBackStack() }
+            )
+        }
+
+        composable(Rutas.Contactos.route) {
+            ContactoListScreen(
+                viewModel = contactoViewModel,
+                onVolver = { navController.popBackStack() },
+                onNuevo = {
+                    navController.navigate(Rutas.FormularioContacto.conId(0L))
+                },
+                onSeleccionar = { id ->
+                    navController.navigate(Rutas.FormularioContacto.conId(id))
+                }
+            )
+        }
+
+        composable(
+            route = Rutas.FormularioContacto.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            ContactoFormScreen(
+                viewModel = contactoViewModel,
+                contactoId = id,
+                onVolver = { navController.popBackStack() },
+                onGuardado = { navController.popBackStack() }
+            )
+        }
+
+        composable(Rutas.Eventos.route) {
+            EventoListScreen(
+                viewModel = eventoViewModel,
+                onVolver = { navController.popBackStack() },
+                onNuevo = {
+                    navController.navigate(Rutas.FormularioEvento.conId(0L))
+                },
+                onSeleccionar = { id ->
+                    navController.navigate(Rutas.FormularioEvento.conId(id))
+                }
+            )
+        }
+
+        composable(
+            route = Rutas.FormularioEvento.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            EventoFormScreen(
+                viewModel = eventoViewModel,
+                eventoId = id,
+                onVolver = { navController.popBackStack() },
+                onGuardado = { navController.popBackStack() }
             )
         }
 

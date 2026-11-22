@@ -8,8 +8,11 @@ import androidx.activity.viewModels
 import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.navigation.AppNavigation
 import cl.duocuc.evaluacion2.ui.theme.MaxTheme
+import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
@@ -32,6 +35,18 @@ class MainActivity : ComponentActivity() {
 
     private val qrViewModel: QrViewModel by viewModels()
 
+    private val organizacionViewModel: OrganizacionViewModel by viewModels {
+        OrganizacionViewModel.factory(application)
+    }
+
+    private val contactoViewModel: ContactoViewModel by viewModels {
+        ContactoViewModel.factory(application)
+    }
+
+    private val eventoViewModel: EventoViewModel by viewModels {
+        EventoViewModel.factory(application)
+    }
+
     private val ubicacionViewModel: UbicacionViewModel by viewModels {
         UbicacionViewModel.factory(application)
     }
@@ -44,6 +59,9 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(
                     loginViewModel = loginViewModel,
                     oportunidadViewModel = oportunidadViewModel,
+                    organizacionViewModel = organizacionViewModel,
+                    contactoViewModel = contactoViewModel,
+                    eventoViewModel = eventoViewModel,
                     qrViewModel = qrViewModel,
                     ubicacionViewModel = ubicacionViewModel
                 )
