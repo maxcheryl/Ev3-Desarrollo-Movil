@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Sin reglas especiales: la app solo guarda datos ficticios de demostración -->
+    </cloud-backup>
+</data-extraction-rules>

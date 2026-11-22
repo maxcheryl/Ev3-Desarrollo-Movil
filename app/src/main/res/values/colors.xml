@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- La paleta de la app vive en ui/theme/Color.kt; aquí solo se mantiene el archivo por si se necesitan colores XML -->
+</resources>
