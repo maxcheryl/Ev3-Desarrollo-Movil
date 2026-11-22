@@ -88,6 +88,11 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
                 estado = existente.estado,
                 observaciones = existente.observaciones,
                 codigoQr = existente.codigoQr,
+                eventoId = existente.eventoId,
+                organizacionId = existente.organizacionId,
+                contactoId = existente.contactoId,
+                responsableId = existente.responsableId,
+                publicoEsperado = existente.publicoEsperado,
                 fechaCreacion = existente.fechaCreacion
             )
         )
@@ -189,6 +194,11 @@ class OportunidadViewModel(application: Application) : AndroidViewModel(applicat
             estado = actual.form.estado,
             observaciones = actual.form.observaciones.trim(),
             codigoQr = actual.form.codigoQr,
+            eventoId = actual.form.eventoId,
+            organizacionId = actual.form.organizacionId,
+            contactoId = actual.form.contactoId,
+            responsableId = actual.form.responsableId,
+            publicoEsperado = actual.form.publicoEsperado.trim(),
             fechaCreacion = actual.form.fechaCreacion ?: System.currentTimeMillis()
         )
 

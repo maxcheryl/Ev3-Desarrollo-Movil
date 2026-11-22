@@ -1,5 +1,6 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import cl.duocuc.evaluacion2.data.local.DatabaseSeed
 import cl.duocuc.evaluacion2.data.local.OpportunityDao
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
@@ -52,6 +53,8 @@ class OportunidadRepository(private val dao: OpportunityDao) {
                 estado = EstadoGestion.PROPUESTA_ENVIADA.name,
                 observaciones = "Datos de demostración ficticios. Buscar contacto del área de eventos.",
                 codigoQr = "MAX:OP-001",
+                responsableId = DatabaseSeed.USUARIO_DALI_ID,
+                publicoEsperado = "120 colaboradores",
                 fechaCreacion = ahora - 5 * unDia,
                 fechaActualizacion = ahora - 1 * unDia
             ),
@@ -65,6 +68,8 @@ class OportunidadRepository(private val dao: OpportunityDao) {
                 estado = EstadoGestion.CONTACTO_PENDIENTE.name,
                 observaciones = "Datos de demostración ficticios.",
                 codigoQr = "MAX:OP-002",
+                responsableId = DatabaseSeed.USUARIO_DALI_ID,
+                publicoEsperado = "300 asistentes",
                 fechaCreacion = ahora - 3 * unDia,
                 fechaActualizacion = ahora - 2 * unDia
             ),
@@ -78,6 +83,8 @@ class OportunidadRepository(private val dao: OpportunityDao) {
                 estado = EstadoGestion.EVENTO_IDENTIFICADO.name,
                 observaciones = "Datos de demostración ficticios. Evaluar costo de stand.",
                 codigoQr = "MAX:OP-003",
+                responsableId = DatabaseSeed.USUARIO_DALI_ID,
+                publicoEsperado = "500 visitantes",
                 fechaCreacion = ahora - 1 * unDia,
                 fechaActualizacion = ahora
             )

@@ -52,7 +52,6 @@ enum class EstadoGestion(val etiqueta: String) {
     PROPUESTA_ENVIADA("Propuesta enviada"),
     EN_ESPERA_DE_RESPUESTA("En espera de respuesta"),
     PARTICIPACION_CONFIRMADA("Participación confirmada"),
-    ACTIVACION_REALIZADA("Activación realizada"),
     OPORTUNIDAD_DESCARTADA("Oportunidad descartada");
 
     companion object {

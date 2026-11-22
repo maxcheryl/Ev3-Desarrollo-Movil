@@ -1,6 +1,8 @@
 package cl.duocuc.evaluacion2.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -9,8 +11,18 @@ import androidx.room.PrimaryKey
  * con el name del enum: es más simple de leer en la BD y permite
  * mostrar la etiqueta bonita en la UI sin guardar dos veces lo mismo.
  * Un id igual a 0 indica registro nuevo; Room le asigna uno autogenerado.
+ * Las referencias a evento, organización, contacto y responsable son ids
+ * lógicos: la integridad se mantiene desde los repositorios.
  */
-@Entity(tableName = "oportunidades")
+@Entity(
+    tableName = "oportunidades",
+    indices = [
+        Index("eventoId"),
+        Index("organizacionId"),
+        Index("contactoId"),
+        Index("responsableId")
+    ]
+)
 data class OpportunityEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val nombre: String,
@@ -22,6 +34,11 @@ data class OpportunityEntity(
     val estado: String,
     val observaciones: String = "",
     val codigoQr: String = "",
+    val eventoId: Long? = null,
+    val organizacionId: Long? = null,
+    val contactoId: Long? = null,
+    val responsableId: Long? = null,
+    @ColumnInfo(defaultValue = "''") val publicoEsperado: String = "",
     val fechaCreacion: Long = System.currentTimeMillis(),
     val fechaActualizacion: Long = System.currentTimeMillis()
 )

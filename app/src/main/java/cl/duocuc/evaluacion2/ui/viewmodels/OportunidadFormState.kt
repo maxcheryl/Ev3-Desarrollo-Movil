@@ -17,6 +17,11 @@ data class OportunidadFormState(
     val estado: String = EstadoGestion.EVENTO_IDENTIFICADO.name,
     val observaciones: String = "",
     val codigoQr: String = "",
+    val eventoId: Long? = null,
+    val organizacionId: Long? = null,
+    val contactoId: Long? = null,
+    val responsableId: Long? = null,
+    val publicoEsperado: String = "",
     val fechaCreacion: Long? = null
 )
 
