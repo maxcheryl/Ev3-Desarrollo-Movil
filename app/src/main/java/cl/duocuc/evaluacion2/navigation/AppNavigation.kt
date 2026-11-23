@@ -28,9 +28,11 @@ import cl.duocuc.evaluacion2.ui.screens.OportunidadListScreen
 import cl.duocuc.evaluacion2.ui.screens.OrganizacionFormScreen
 import cl.duocuc.evaluacion2.ui.screens.OrganizacionListScreen
 import cl.duocuc.evaluacion2.ui.screens.PantallaInicialScreen
+import cl.duocuc.evaluacion2.ui.screens.RegistrarGestionScreen
 import cl.duocuc.evaluacion2.ui.screens.UbicacionScreen
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
@@ -61,6 +63,9 @@ sealed class Rutas(val route: String) {
     object DetalleOportunidad : Rutas("detalle_oportunidad/{id}") {
         fun conId(id: Long) = "detalle_oportunidad/$id"
     }
+    object FormularioGestion : Rutas("formulario_gestion/{oportunidadId}") {
+        fun conId(oportunidadId: Long) = "formulario_gestion/$oportunidadId"
+    }
     object FormularioOportunidad : Rutas("formulario_oportunidad?id={id}") {
         fun conId(id: Long) = "formulario_oportunidad?id=$id"
     }
@@ -73,6 +78,7 @@ sealed class Rutas(val route: String) {
 fun AppNavigation(
     loginViewModel: LoginViewModel,
     oportunidadViewModel: OportunidadViewModel,
+    gestionViewModel: GestionViewModel,
     organizacionViewModel: OrganizacionViewModel,
     contactoViewModel: ContactoViewModel,
     eventoViewModel: EventoViewModel,
@@ -294,11 +300,30 @@ fun AppNavigation(
             OportunidadDetailScreen(
                 id = id,
                 viewModel = oportunidadViewModel,
+                gestionViewModel = gestionViewModel,
                 onVolver = { navController.popBackStack() },
                 onEditar = {
                     navController.navigate(Rutas.FormularioOportunidad.conId(id))
                 },
+                onRegistrarGestion = {
+                    navController.navigate(Rutas.FormularioGestion.conId(id))
+                },
                 onEliminada = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Rutas.FormularioGestion.route,
+            arguments = listOf(
+                navArgument("oportunidadId") { type = NavType.LongType }
+            )
+        ) { entry ->
+            val oportunidadId = entry.arguments?.getLong("oportunidadId") ?: 0L
+            RegistrarGestionScreen(
+                oportunidadId = oportunidadId,
+                viewModel = gestionViewModel,
+                onVolver = { navController.popBackStack() },
+                onGuardado = { navController.popBackStack() }
             )
         }
 

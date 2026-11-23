@@ -1,7 +1,8 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import androidx.room.withTransaction
+import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.DatabaseSeed
-import cl.duocuc.evaluacion2.data.local.OpportunityDao
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
@@ -13,16 +14,24 @@ import kotlinx.coroutines.flow.Flow
  * Repositorio de oportunidades: única puerta de acceso a la persistencia
  * local (Room). La UI y los ViewModels no conocen la base de datos.
  */
-class OportunidadRepository(private val dao: OpportunityDao) {
+class OportunidadRepository(private val database: AppDatabase) {
+
+    private val dao = database.opportunityDao()
 
     fun observeAll(): Flow<List<OpportunityEntity>> = dao.observeAll()
 
     suspend fun contar(): Int = dao.count()
 
+    suspend fun buscarPorId(id: Long): OpportunityEntity? = dao.buscarPorId(id)
+
     suspend fun asignarResponsablesPendientes(responsableId: Long): Int =
         dao.assignNullResponsible(responsableId)
 
-    suspend fun eliminar(id: Long): Int = dao.deleteById(id)
+    suspend fun eliminar(id: Long): Int = database.withTransaction {
+        database.gestionDao().deleteByOportunidad(id)
+        database.historialCambioDao().deleteByOportunidad(id)
+        dao.deleteById(id)
+    }
 
     /** Inserta una oportunidad nueva o actualiza una existente. Devuelve el id. */
     suspend fun guardar(oportunidad: OpportunityEntity): Long {

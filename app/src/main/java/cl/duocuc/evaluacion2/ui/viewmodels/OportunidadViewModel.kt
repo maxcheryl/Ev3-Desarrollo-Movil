@@ -42,7 +42,7 @@ class OportunidadViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = OportunidadRepository(
-        AppDatabase.getInstance(application).opportunityDao()
+        AppDatabase.getInstance(application)
     )
 
     val oportunidades: StateFlow<List<OpportunityEntity>> =

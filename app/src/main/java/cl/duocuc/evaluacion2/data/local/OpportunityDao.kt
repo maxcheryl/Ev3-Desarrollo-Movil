@@ -22,6 +22,9 @@ interface OpportunityDao {
     @Query("SELECT COUNT(*) FROM oportunidades")
     suspend fun count(): Int
 
+    @Query("SELECT * FROM oportunidades WHERE id = :id LIMIT 1")
+    suspend fun buscarPorId(id: Long): OpportunityEntity?
+
     // REPLACE permite usar el mismo método para crear y actualizar
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(oportunidad: OpportunityEntity): Long

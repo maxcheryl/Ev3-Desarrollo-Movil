@@ -10,6 +10,7 @@ import cl.duocuc.evaluacion2.navigation.AppNavigation
 import cl.duocuc.evaluacion2.ui.theme.MaxTheme
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
@@ -31,6 +32,10 @@ class MainActivity : ComponentActivity() {
 
     private val oportunidadViewModel: OportunidadViewModel by viewModels {
         OportunidadViewModel.factory(application, sessionManager)
+    }
+
+    private val gestionViewModel: GestionViewModel by viewModels {
+        GestionViewModel.factory(application, sessionManager)
     }
 
     private val qrViewModel: QrViewModel by viewModels()
@@ -59,6 +64,7 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(
                     loginViewModel = loginViewModel,
                     oportunidadViewModel = oportunidadViewModel,
+                    gestionViewModel = gestionViewModel,
                     organizacionViewModel = organizacionViewModel,
                     contactoViewModel = contactoViewModel,
                     eventoViewModel = eventoViewModel,
