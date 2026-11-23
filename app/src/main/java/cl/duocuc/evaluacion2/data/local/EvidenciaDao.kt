@@ -11,6 +11,9 @@ interface EvidenciaDao {
     @Query("SELECT * FROM evidencias WHERE activacionId = :activacionId ORDER BY fecha DESC")
     fun observePorActivacion(activacionId: Long): Flow<List<EvidenciaEntity>>
 
+    @Query("SELECT * FROM evidencias WHERE activacionId = :activacionId ORDER BY fecha DESC")
+    suspend fun listarPorActivacion(activacionId: Long): List<EvidenciaEntity>
+
     @Insert
     suspend fun insert(evidencia: EvidenciaEntity): Long
 

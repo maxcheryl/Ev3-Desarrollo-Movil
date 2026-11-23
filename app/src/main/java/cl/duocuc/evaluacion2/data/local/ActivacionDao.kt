@@ -15,6 +15,9 @@ interface ActivacionDao {
     @Query("SELECT * FROM activaciones WHERE oportunidadId = :oportunidadId LIMIT 1")
     suspend fun obtenerPorOportunidad(oportunidadId: Long): ActivacionEntity?
 
+    @Query("SELECT * FROM activaciones WHERE id = :id LIMIT 1")
+    suspend fun buscarPorId(id: Long): ActivacionEntity?
+
     @Insert
     suspend fun insert(activacion: ActivacionEntity): Long
 

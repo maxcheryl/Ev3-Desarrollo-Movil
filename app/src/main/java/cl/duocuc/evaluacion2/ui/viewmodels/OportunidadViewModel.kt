@@ -199,6 +199,24 @@ class OportunidadViewModel(
         }
     }
 
+    fun onOrganizacionChange(valor: Long?) {
+        _editor.update {
+            it.copy(form = it.form.copy(organizacionId = valor))
+        }
+    }
+
+    fun onContactoChange(valor: Long?) {
+        _editor.update {
+            it.copy(form = it.form.copy(contactoId = valor))
+        }
+    }
+
+    fun onEventoChange(valor: Long?) {
+        _editor.update {
+            it.copy(form = it.form.copy(eventoId = valor))
+        }
+    }
+
     /** Valida el formulario y, si es válido, guarda en Room. */
     fun guardarOportunidad(onListo: (Long) -> Unit) {
         val usuario = sessionManager.actual

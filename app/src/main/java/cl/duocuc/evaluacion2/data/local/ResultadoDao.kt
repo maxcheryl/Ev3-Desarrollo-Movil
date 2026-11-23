@@ -4,12 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ResultadoDao {
 
     @Query("SELECT * FROM resultados WHERE activacionId = :activacionId LIMIT 1")
     suspend fun obtenerPorActivacion(activacionId: Long): ResultadoEntity?
+
+    @Query("SELECT * FROM resultados WHERE activacionId = :activacionId LIMIT 1")
+    fun observePorActivacion(activacionId: Long): Flow<ResultadoEntity?>
 
     @Insert
     suspend fun insert(resultado: ResultadoEntity): Long

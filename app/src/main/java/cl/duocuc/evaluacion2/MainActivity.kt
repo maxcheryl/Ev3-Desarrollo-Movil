@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.navigation.AppNavigation
 import cl.duocuc.evaluacion2.ui.theme.MaxTheme
+import cl.duocuc.evaluacion2.ui.viewmodels.ActivacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
@@ -38,6 +39,10 @@ class MainActivity : ComponentActivity() {
         GestionViewModel.factory(application, sessionManager)
     }
 
+    private val activacionViewModel: ActivacionViewModel by viewModels {
+        ActivacionViewModel.factory(application, sessionManager)
+    }
+
     private val qrViewModel: QrViewModel by viewModels()
 
     private val organizacionViewModel: OrganizacionViewModel by viewModels {
@@ -65,6 +70,7 @@ class MainActivity : ComponentActivity() {
                     loginViewModel = loginViewModel,
                     oportunidadViewModel = oportunidadViewModel,
                     gestionViewModel = gestionViewModel,
+                    activacionViewModel = activacionViewModel,
                     organizacionViewModel = organizacionViewModel,
                     contactoViewModel = contactoViewModel,
                     eventoViewModel = eventoViewModel,

@@ -44,11 +44,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cl.duocuc.evaluacion2.data.local.ContactoEntity
+import cl.duocuc.evaluacion2.data.local.EventoEntity
+import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
 import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.FuentesOportunidad
+import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 
 /**
@@ -61,11 +67,17 @@ import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 fun FormularioOportunidadScreen(
     id: Long,
     viewModel: OportunidadViewModel,
+    organizacionViewModel: OrganizacionViewModel,
+    contactoViewModel: ContactoViewModel,
+    eventoViewModel: EventoViewModel,
     onVolver: () -> Unit,
     onGuardado: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val editor by viewModel.editor.collectAsState()
+    val organizaciones by organizacionViewModel.organizaciones.collectAsState()
+    val contactos by contactoViewModel.contactos.collectAsState()
+    val eventos by eventoViewModel.eventos.collectAsState()
 
     LaunchedEffect(id) {
         if (id == 0L) viewModel.beginNueva() else viewModel.beginEditar(id)
@@ -178,6 +190,43 @@ fun FormularioOportunidadScreen(
                 placeholder = "Seleccione un estado",
                 error = editor.errores.estado,
                 onSelected = viewModel::onEstadoChange
+            )
+
+            Text(
+                text = "Registros relacionados",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            FormDropdown(
+                label = "Organización (opcional)",
+                selected = editor.form.organizacionId?.toString().orEmpty(),
+                options = listOf(OpcionDropdown("", "Sin organización")) +
+                    organizaciones.map { OpcionDropdown(it.id.toString(), it.nombre) },
+                placeholder = "Selecciona una organización",
+                error = null,
+                onSelected = { viewModel.onOrganizacionChange(it.toLongOrNull()) }
+            )
+
+            FormDropdown(
+                label = "Contacto (opcional)",
+                selected = editor.form.contactoId?.toString().orEmpty(),
+                options = listOf(OpcionDropdown("", "Sin contacto")) +
+                    contactos.map { OpcionDropdown(it.id.toString(), it.nombre) },
+                placeholder = "Selecciona un contacto",
+                error = null,
+                onSelected = { viewModel.onContactoChange(it.toLongOrNull()) }
+            )
+
+            FormDropdown(
+                label = "Evento o actividad (opcional)",
+                selected = editor.form.eventoId?.toString().orEmpty(),
+                options = listOf(OpcionDropdown("", "Sin evento")) +
+                    eventos.map { OpcionDropdown(it.id.toString(), it.nombre) },
+                placeholder = "Selecciona un evento",
+                error = null,
+                onSelected = { viewModel.onEventoChange(it.toLongOrNull()) }
             )
 
             Text(

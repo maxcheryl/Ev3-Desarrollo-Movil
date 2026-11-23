@@ -1,0 +1,299 @@
+package cl.duocuc.evaluacion2.ui.viewmodels
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import cl.duocuc.evaluacion2.data.local.ActivacionEntity
+import cl.duocuc.evaluacion2.data.local.AppDatabase
+import cl.duocuc.evaluacion2.data.local.EvidenciaEntity
+import cl.duocuc.evaluacion2.data.local.ResultadoEntity
+import cl.duocuc.evaluacion2.data.local.UsuarioEntity
+import cl.duocuc.evaluacion2.data.model.EstadoGestion
+import cl.duocuc.evaluacion2.data.repository.ActivacionRepository
+import cl.duocuc.evaluacion2.data.session.SessionManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class ActivacionUiState(
+    val oportunidadId: Long = 0,
+    val oportunidadNombre: String = "",
+    val activacionId: Long? = null,
+    val evidencias: List<EvidenciaEntity> = emptyList(),
+    val resultadoGuardado: ResultadoEntity? = null,
+    val usuarios: List<UsuarioEntity> = emptyList(),
+    val participacionConfirmada: Boolean = false,
+    val responsableId: Long? = null,
+    val espacio: String = "",
+    val fecha: Long? = null,
+    val costo: String = "",
+    val requisitos: String = "",
+    val resultadoFinal: String = "",
+    val observaciones: String = "",
+    val impacto: String = "",
+    val cargando: Boolean = true,
+    val guardando: Boolean = false,
+    val mensajeError: String? = null,
+    val mensajeExito: String? = null
+)
+
+class ActivacionViewModel(
+    application: Application,
+    private val sessionManager: SessionManager
+) : AndroidViewModel(application) {
+
+    private val repository = ActivacionRepository(AppDatabase.getInstance(application))
+    private val _uiState = MutableStateFlow(ActivacionUiState())
+    val uiState: StateFlow<ActivacionUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.observeUsuarios().collect { usuarios ->
+                _uiState.update { it.copy(usuarios = usuarios) }
+            }
+        }
+    }
+
+    fun cargar(oportunidadId: Long) {
+        if (_uiState.value.oportunidadId == oportunidadId && !_uiState.value.cargando) return
+        val usuarios = _uiState.value.usuarios
+        _uiState.value = ActivacionUiState(
+            oportunidadId = oportunidadId,
+            usuarios = usuarios,
+            cargando = true
+        )
+        viewModelScope.launch {
+            try {
+                val oportunidad = repository.obtenerOportunidad(oportunidadId)
+                    ?: error("La oportunidad ya no está disponible.")
+                val activacion = repository.obtenerActivacion(oportunidadId)
+                val evidencias = activacion?.let {
+                    repository.obtenerEvidencias(it.id)
+                }.orEmpty()
+                val resultado = activacion?.let {
+                    repository.obtenerResultado(it.id)
+                }
+                _uiState.update {
+                    it.copy(
+                        oportunidadNombre = oportunidad.nombre,
+                        activacionId = activacion?.id,
+                        evidencias = evidencias,
+                        resultadoGuardado = resultado,
+                        participacionConfirmada = activacion?.participacionConfirmada ?: false,
+                        responsableId = activacion?.responsableId
+                            ?: sessionManager.actual?.id
+                            ?: it.usuarios.firstOrNull()?.id,
+                        espacio = activacion?.espacio.orEmpty(),
+                        fecha = activacion?.fecha,
+                        costo = activacion?.costo?.toString().orEmpty(),
+                        requisitos = activacion?.requisitos.orEmpty(),
+                        resultadoFinal = resultado?.resultado
+                            ?: oportunidad.estado.takeIf {
+                                it == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
+                                    it == EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+                            }.orEmpty(),
+                        observaciones = resultado?.observaciones.orEmpty(),
+                        impacto = resultado?.impacto.orEmpty(),
+                        cargando = false,
+                        mensajeError = null
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        cargando = false,
+                        mensajeError = "No se pudo cargar la activación: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun onResponsableChange(valor: Long?) = cambiar { it.copy(responsableId = valor) }
+    fun onEspacioChange(valor: String) = cambiar { it.copy(espacio = valor) }
+    fun onFechaChange(valor: Long?) = cambiar { it.copy(fecha = valor) }
+    fun onCostoChange(valor: String) = cambiar { it.copy(costo = valor) }
+    fun onRequisitosChange(valor: String) = cambiar { it.copy(requisitos = valor) }
+    fun onResultadoFinalChange(valor: String) = cambiar { it.copy(resultadoFinal = valor) }
+    fun onObservacionesChange(valor: String) = cambiar { it.copy(observaciones = valor) }
+    fun onImpactoChange(valor: String) = cambiar { it.copy(impacto = valor) }
+
+    fun agregarEvidencia(tipo: String, nombre: String, uri: String) {
+        val state = _uiState.value
+        val activacionId = state.activacionId
+        val usuarioId = sessionManager.actual?.id
+        if (activacionId == null || usuarioId == null) {
+            cambiar {
+                it.copy(mensajeError = "Guarda la coordinación antes de adjuntar evidencias.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repository.agregarEvidencia(
+                    EvidenciaEntity(
+                        activacionId = activacionId,
+                        tipo = tipo,
+                        nombre = nombre,
+                        ruta = uri
+                    ),
+                    usuarioId
+                )
+                val evidencias = repository.obtenerEvidencias(activacionId)
+                _uiState.update {
+                    it.copy(
+                        evidencias = evidencias,
+                        mensajeError = null,
+                        mensajeExito = "Evidencia adjunta."
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(mensajeError = "No se pudo adjuntar la evidencia: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun guardarCoordinacion() {
+        val state = _uiState.value
+        val usuarioId = sessionManager.actual?.id
+        val responsableId = state.responsableId
+        val costo = state.costo.trim().takeIf(String::isNotEmpty)?.replace(',', '.')?.toDoubleOrNull()
+        if (usuarioId == null) {
+            cambiar { it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.") }
+            return
+        }
+        if (responsableId == null || state.usuarios.none { it.id == responsableId }) {
+            cambiar { it.copy(mensajeError = "Selecciona un responsable disponible.") }
+            return
+        }
+        if (state.costo.isNotBlank() && (costo == null || !costo.isFinite() || costo < 0)) {
+            cambiar { it.copy(mensajeError = "El costo debe ser un número igual o mayor que cero.") }
+            return
+        }
+        if (state.guardando) return
+
+        cambiar { it.copy(guardando = true, mensajeError = null, mensajeExito = null) }
+        viewModelScope.launch {
+            try {
+                val id = repository.guardarActivacion(
+                    ActivacionEntity(
+                        id = state.activacionId ?: 0,
+                        oportunidadId = state.oportunidadId,
+                        participacionConfirmada = state.participacionConfirmada,
+                        responsableId = responsableId,
+                        espacio = state.espacio.trim(),
+                        fecha = state.fecha,
+                        costo = costo,
+                        requisitos = state.requisitos.trim()
+                    ),
+                    usuarioId
+                )
+                _uiState.update {
+                    it.copy(
+                        activacionId = id,
+                        guardando = false,
+                        mensajeError = null,
+                        mensajeExito = "Coordinación guardada."
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        guardando = false,
+                        mensajeError = "No se pudo guardar la coordinación: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun guardarResultado() {
+        val state = _uiState.value
+        val activacionId = state.activacionId
+        val usuarioId = sessionManager.actual?.id
+        if (activacionId == null) {
+            cambiar { it.copy(mensajeError = "Guarda la coordinación antes de registrar el resultado.") }
+            return
+        }
+        if (usuarioId == null) {
+            cambiar { it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.") }
+            return
+        }
+        if (state.resultadoFinal != EstadoGestion.PARTICIPACION_CONFIRMADA.name &&
+            state.resultadoFinal != EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+        ) {
+            cambiar { it.copy(mensajeError = "Selecciona el resultado final de la oportunidad.") }
+            return
+        }
+        if (state.guardando) return
+
+        cambiar { it.copy(guardando = true, mensajeError = null, mensajeExito = null) }
+        viewModelScope.launch {
+            try {
+                repository.guardarResultado(
+                    activacionId = activacionId,
+                    resultado = state.resultadoFinal,
+                    observaciones = state.observaciones.trim(),
+                    impacto = state.impacto.trim(),
+                    nuevoEstado = state.resultadoFinal,
+                    usuarioId = usuarioId
+                )
+                _uiState.update {
+                    it.copy(
+                        resultadoGuardado = ResultadoEntity(
+                            activacionId = activacionId,
+                            resultado = state.resultadoFinal,
+                            observaciones = state.observaciones.trim(),
+                            impacto = state.impacto.trim()
+                        ),
+                        participacionConfirmada =
+                            state.resultadoFinal == EstadoGestion.PARTICIPACION_CONFIRMADA.name,
+                        guardando = false,
+                        mensajeError = null,
+                        mensajeExito = "Resultado guardado y oportunidad cerrada."
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        guardando = false,
+                        mensajeError = "No se pudo guardar el resultado: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun cambiar(transform: (ActivacionUiState) -> ActivacionUiState) {
+        _uiState.update { transform(it).copy(mensajeError = null, mensajeExito = null) }
+    }
+
+    companion object {
+        fun factory(
+            application: Application,
+            sessionManager: SessionManager
+        ): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    require(modelClass.isAssignableFrom(ActivacionViewModel::class.java))
+                    return ActivacionViewModel(application, sessionManager) as T
+                }
+            }
+    }
+}

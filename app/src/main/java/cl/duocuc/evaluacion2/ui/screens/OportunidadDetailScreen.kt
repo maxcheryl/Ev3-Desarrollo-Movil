@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.local.GestionEntity
 import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
+import cl.duocuc.evaluacion2.data.local.ContactoEntity
+import cl.duocuc.evaluacion2.data.local.EventoEntity
+import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
@@ -53,6 +57,9 @@ import cl.duocuc.evaluacion2.data.model.TipoAccionHistorial
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,9 +75,13 @@ fun OportunidadDetailScreen(
     id: Long,
     viewModel: OportunidadViewModel,
     gestionViewModel: GestionViewModel,
+    organizacionViewModel: OrganizacionViewModel,
+    contactoViewModel: ContactoViewModel,
+    eventoViewModel: EventoViewModel,
     onVolver: () -> Unit,
     onEditar: () -> Unit,
     onRegistrarGestion: () -> Unit,
+    onGestionarActivacion: () -> Unit,
     onEliminada: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -80,6 +91,9 @@ fun OportunidadDetailScreen(
     val historial by gestionViewModel.historial.collectAsState()
     val usuarios by gestionViewModel.usuarios.collectAsState()
     val esEjecutivo by gestionViewModel.esEjecutivo.collectAsState()
+    val organizaciones by organizacionViewModel.organizaciones.collectAsState()
+    val contactos by contactoViewModel.contactos.collectAsState()
+    val eventos by eventoViewModel.eventos.collectAsState()
     var confirmarEliminacion by remember(id) { mutableStateOf(false) }
     var eliminando by remember(id) { mutableStateOf(false) }
     var errorEliminacion by remember(id) { mutableStateOf<String?>(null) }
@@ -128,8 +142,12 @@ fun OportunidadDetailScreen(
                 gestiones = gestiones,
                 historial = historial,
                 usuarios = usuarios,
+                organizaciones = organizaciones,
+                contactos = contactos,
+                eventos = eventos,
                 puedeRegistrarGestion = esEjecutivo,
                 onRegistrarGestion = onRegistrarGestion,
+                onGestionarActivacion = onGestionarActivacion,
                 onEliminar = { confirmarEliminacion = true },
                 modifier = Modifier
                     .fillMaxSize()
@@ -198,8 +216,12 @@ private fun DetalleContenido(
     gestiones: List<GestionEntity>,
     historial: List<HistorialCambioEntity>,
     usuarios: Map<Long, String>,
+    organizaciones: List<OrganizacionEntity>,
+    contactos: List<ContactoEntity>,
+    eventos: List<EventoEntity>,
     puedeRegistrarGestion: Boolean,
     onRegistrarGestion: () -> Unit,
+    onGestionarActivacion: () -> Unit,
     onEliminar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -208,6 +230,17 @@ private fun DetalleContenido(
     val potencial = PotencialComercial.desdeNombre(oportunidad.potencialComercial)
     val estado = EstadoGestion.desdeNombre(oportunidad.estado)
     val formatoFecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val organizacion = organizaciones.firstOrNull { it.id == oportunidad.organizacionId }
+    val contacto = contactos.firstOrNull { it.id == oportunidad.contactoId }
+    val evento = eventos.firstOrNull { it.id == oportunidad.eventoId }
+    val formatoFechaEvento = remember {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+    val organizacionEvento = evento?.let { relacionado ->
+        organizaciones.firstOrNull { it.id == relacionado.organizacionId }?.nombre
+    }
 
     Column(
         modifier = modifier
@@ -254,6 +287,18 @@ private fun DetalleContenido(
                 CampoDetalle("Prioridad", prioridad.etiqueta)
                 CampoDetalle("Potencial comercial", potencial.etiqueta)
                 CampoDetalle("Estado de gestión", estado.etiqueta)
+                CampoDetalle("Organización", organizacion?.nombre ?: "Sin organización asociada")
+                CampoDetalle(
+                    "Contacto",
+                    contacto?.let { "${it.nombre} · ${it.cargo}" } ?: "Sin contacto asociado"
+                )
+                CampoDetalle(
+                    "Evento o actividad",
+                    evento?.let {
+                        "${it.nombre} · ${formatoFechaEvento.format(Date(it.fecha))} · " +
+                            "${it.comuna} · ${organizacionEvento ?: "Sin organización"}"
+                    } ?: "Sin evento asociado"
+                )
                 if (oportunidad.observaciones.isNotBlank()) {
                     CampoDetalle("Observaciones", oportunidad.observaciones)
                 }
@@ -276,6 +321,14 @@ private fun DetalleContenido(
             puedeRegistrar = puedeRegistrarGestion,
             onRegistrar = onRegistrarGestion
         )
+
+        OutlinedButton(
+            onClick = onGestionarActivacion,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Outlined.EventAvailable, contentDescription = null)
+            Text("Gestionar activación", modifier = Modifier.padding(start = 8.dp))
+        }
 
         HistorialSeccion(
             historial = historial,
