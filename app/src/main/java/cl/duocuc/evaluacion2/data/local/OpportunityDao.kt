@@ -25,6 +25,13 @@ interface OpportunityDao {
     @Query("SELECT * FROM oportunidades WHERE id = :id LIMIT 1")
     suspend fun buscarPorId(id: Long): OpportunityEntity?
 
+    @Query(
+        "SELECT * FROM oportunidades " +
+            "WHERE id NOT IN (SELECT oportunidadId FROM historial_cambios) " +
+            "ORDER BY fechaCreacion ASC"
+    )
+    suspend fun listarSinHistorial(): List<OpportunityEntity>
+
     // REPLACE permite usar el mismo método para crear y actualizar
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(oportunidad: OpportunityEntity): Long

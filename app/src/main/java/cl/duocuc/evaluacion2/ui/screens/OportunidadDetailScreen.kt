@@ -44,10 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.local.GestionEntity
+import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
+import cl.duocuc.evaluacion2.data.model.TipoAccionHistorial
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
@@ -75,6 +77,7 @@ fun OportunidadDetailScreen(
     val oportunidades by viewModel.oportunidades.collectAsState()
     val oportunidad = oportunidades.firstOrNull { it.id == id }
     val gestiones by gestionViewModel.gestiones.collectAsState()
+    val historial by gestionViewModel.historial.collectAsState()
     val usuarios by gestionViewModel.usuarios.collectAsState()
     val esEjecutivo by gestionViewModel.esEjecutivo.collectAsState()
     var confirmarEliminacion by remember(id) { mutableStateOf(false) }
@@ -123,6 +126,7 @@ fun OportunidadDetailScreen(
             DetalleContenido(
                 oportunidad = oportunidad,
                 gestiones = gestiones,
+                historial = historial,
                 usuarios = usuarios,
                 puedeRegistrarGestion = esEjecutivo,
                 onRegistrarGestion = onRegistrarGestion,
@@ -192,6 +196,7 @@ fun OportunidadDetailScreen(
 private fun DetalleContenido(
     oportunidad: OpportunityEntity,
     gestiones: List<GestionEntity>,
+    historial: List<HistorialCambioEntity>,
     usuarios: Map<Long, String>,
     puedeRegistrarGestion: Boolean,
     onRegistrarGestion: () -> Unit,
@@ -270,6 +275,11 @@ private fun DetalleContenido(
             usuarios = usuarios,
             puedeRegistrar = puedeRegistrarGestion,
             onRegistrar = onRegistrarGestion
+        )
+
+        HistorialSeccion(
+            historial = historial,
+            usuarios = usuarios
         )
 
         OutlinedButton(
@@ -421,6 +431,91 @@ private fun TarjetaGestion(
 
             Text(
                 text = "Registrada por $usuario",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistorialSeccion(
+    historial: List<HistorialCambioEntity>,
+    usuarios: Map<Long, String>
+) {
+    val formatoFechaHora = remember {
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Historial de cambios",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        if (historial.isEmpty()) {
+            Text(
+                text = "Aún no hay cambios registrados.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            historial.forEach { cambio ->
+                TarjetaHistorial(
+                    cambio = cambio,
+                    usuario = usuarios[cambio.usuarioId] ?: "Usuario",
+                    fechaHora = formatoFechaHora.format(Date(cambio.fecha))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaHistorial(
+    cambio: HistorialCambioEntity,
+    usuario: String,
+    fechaHora: String
+) {
+    val tipo = TipoAccionHistorial.desdeNombre(cambio.tipoAccion)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = tipo.etiqueta,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = fechaHora,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = cambio.descripcion,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "Por $usuario",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.GestionEntity
+import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
 import cl.duocuc.evaluacion2.data.model.PerfilUsuario
 import cl.duocuc.evaluacion2.data.repository.GestionRepository
+import cl.duocuc.evaluacion2.data.repository.HistorialRepository
 import cl.duocuc.evaluacion2.data.repository.UsuarioRepository
 import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.validation.GestionValidator
@@ -31,6 +33,7 @@ class GestionViewModel(
 
     private val database = AppDatabase.getInstance(application)
     private val repository = GestionRepository(database)
+    private val historialRepository = HistorialRepository(database)
     private val usuarioRepository = UsuarioRepository(database.usuarioDao())
 
     private val _oportunidadId = MutableStateFlow<Long?>(null)
@@ -38,6 +41,16 @@ class GestionViewModel(
     val gestiones: StateFlow<List<GestionEntity>> = _oportunidadId
         .flatMapLatest { id ->
             if (id == null) flowOf(emptyList<GestionEntity>()) else repository.observePorOportunidad(id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val historial: StateFlow<List<HistorialCambioEntity>> = _oportunidadId
+        .flatMapLatest { id ->
+            if (id == null) {
+                flowOf(emptyList<HistorialCambioEntity>())
+            } else {
+                historialRepository.observePorOportunidad(id)
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

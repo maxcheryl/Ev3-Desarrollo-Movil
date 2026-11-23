@@ -67,11 +67,12 @@ class OportunidadViewModel(
     val editor: StateFlow<OportunidadEditorUiState> = _editor.asStateFlow()
 
     init {
-        // Al abrir el módulo se cargan los datos de ejemplo si la tabla está vacía
+        // Al abrir el módulo se cargan los datos de ejemplo y se completa el historial
         viewModelScope.launch {
             try {
                 repository.semillarSiVacia()
                 repository.asignarResponsablesPendientes(DatabaseSeed.USUARIO_DALI_ID)
+                repository.completarHistorialCreacion(DatabaseSeed.USUARIO_DALI_ID)
             } finally {
                 _cargando.value = false
             }
@@ -258,9 +259,11 @@ class OportunidadViewModel(
 
         viewModelScope.launch {
             try {
-                val idGuardado = repository.guardar(entidad)
+                val idGuardado = repository.guardar(entidad, usuario.id)
                 _editor.value = OportunidadEditorUiState()
                 onListo(idGuardado)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _editor.update {
                     it.copy(

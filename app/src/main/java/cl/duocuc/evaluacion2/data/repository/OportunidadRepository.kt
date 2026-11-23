@@ -1,8 +1,10 @@
 package cl.duocuc.evaluacion2.data.repository
 
 import androidx.room.withTransaction
+import cl.duocuc.evaluacion2.data.historial.HistorialDescripciones
 import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.DatabaseSeed
+import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 class OportunidadRepository(private val database: AppDatabase) {
 
     private val dao = database.opportunityDao()
+    private val historialDao = database.historialCambioDao()
+    private val usuarioDao = database.usuarioDao()
 
     fun observeAll(): Flow<List<OpportunityEntity>> = dao.observeAll()
 
@@ -34,13 +38,69 @@ class OportunidadRepository(private val database: AppDatabase) {
     }
 
     /** Inserta una oportunidad nueva o actualiza una existente. Devuelve el id. */
-    suspend fun guardar(oportunidad: OpportunityEntity): Long {
-        return if (oportunidad.id == 0L) {
-            dao.insert(oportunidad)
-        } else {
-            // Al editar se conserva la fecha de creación original y solo se mueve la de actualización
-            dao.update(oportunidad.copy(fechaActualizacion = System.currentTimeMillis()))
-            oportunidad.id
+    suspend fun guardar(oportunidad: OpportunityEntity, usuarioId: Long): Long =
+        database.withTransaction {
+            if (oportunidad.id == 0L) {
+                val id = dao.insert(oportunidad)
+                val cambio = HistorialDescripciones.creacion(
+                    oportunidad = oportunidad,
+                    responsable = nombreResponsable(oportunidad.responsableId)
+                )
+                historialDao.insert(
+                    HistorialCambioEntity(
+                        oportunidadId = id,
+                        usuarioId = usuarioId,
+                        tipoAccion = cambio.tipoAccion.name,
+                        descripcion = cambio.descripcion,
+                        fecha = oportunidad.fechaCreacion
+                    )
+                )
+                id
+            } else {
+                val anterior = dao.buscarPorId(oportunidad.id)
+                    ?: error("La oportunidad ya no está disponible.")
+                val cambios = HistorialDescripciones.actualizacion(
+                    anterior = anterior,
+                    nueva = oportunidad,
+                    responsableAnterior = nombreResponsable(anterior.responsableId),
+                    responsableNuevo = nombreResponsable(oportunidad.responsableId)
+                )
+                val ahora = System.currentTimeMillis()
+                // Al editar se conserva la fecha de creación original y solo se mueve la de actualización
+                dao.update(oportunidad.copy(fechaActualizacion = ahora))
+                cambios.forEach { cambio ->
+                    historialDao.insert(
+                        HistorialCambioEntity(
+                            oportunidadId = oportunidad.id,
+                            usuarioId = usuarioId,
+                            tipoAccion = cambio.tipoAccion.name,
+                            descripcion = cambio.descripcion,
+                            fecha = ahora
+                        )
+                    )
+                }
+                oportunidad.id
+            }
+        }
+
+    /** Completa el historial de creación de oportunidades antiguas o de ejemplo. */
+    suspend fun completarHistorialCreacion(usuarioId: Long) {
+        database.withTransaction {
+            dao.listarSinHistorial().forEach { oportunidad ->
+                val cambio = HistorialDescripciones.creacion(
+                    oportunidad = oportunidad,
+                    responsable = nombreResponsable(oportunidad.responsableId)
+                )
+                historialDao.insert(
+                    HistorialCambioEntity(
+                        oportunidadId = oportunidad.id,
+                        usuarioId = oportunidad.responsableId ?: usuarioId,
+                        tipoAccion = cambio.tipoAccion.name,
+                        descripcion = cambio.descripcion,
+                        fecha = oportunidad.fechaCreacion
+                    )
+                )
+            }
         }
     }
 
@@ -49,6 +109,9 @@ class OportunidadRepository(private val database: AppDatabase) {
         if (contar() > 0) return
         datosDeEjemplo().forEach { dao.insert(it) }
     }
+
+    private suspend fun nombreResponsable(id: Long?): String? =
+        id?.let { usuarioDao.buscarPorId(it)?.nombre ?: "Usuario #$it" }
 
     private fun datosDeEjemplo(): List<OpportunityEntity> {
         val ahora = System.currentTimeMillis()
