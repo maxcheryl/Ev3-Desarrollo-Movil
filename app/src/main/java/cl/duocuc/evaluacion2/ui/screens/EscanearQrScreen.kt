@@ -51,9 +51,8 @@ import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 
 /**
- * Pantalla de escaneo de códigos QR para localizar oportunidades.
- * Solo los códigos válidos (prefijo «MAX:») pueden abrir una
- * oportunidad; un código inválido nunca modifica datos.
+ * Lee un QR y busca la oportunidad relacionada.
+ * Solo acepta códigos que comienzan con «MAX:»; un código inválido no cambia datos.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,16 +82,14 @@ fun EscanearQrScreen(
         }
     }
 
-    // Cada entrada a la pantalla parte de cero: sin esto, el estado del
-    // último escaneo exitoso reabriría el detalle anterior en vez de la cámara
+    // Limpia el resultado anterior al abrir la pantalla.
     LaunchedEffect(Unit) {
         qrViewModel.reiniciarEscaneo()
     }
 
-    // Con un código válido, buscar la oportunidad asociada
+    // Busca la oportunidad solo si el código es válido.
     LaunchedEffect(uiState.contenido, uiState.esValido, oportunidades) {
-        // Se lee el estado directo del ViewModel (no el rezagado de la
-        // recomposición) para no navegar con datos de un escaneo anterior
+        // Usa el resultado más reciente para no abrir la oportunidad del escaneo anterior.
         val estado = qrViewModel.uiState.value
         val contenido = estado.contenido
         if (contenido != null && estado.esValido && estado.mensaje == null &&
@@ -127,7 +124,7 @@ fun EscanearQrScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Estados sin cámara: animados con Crossfade
+            // Anima los cambios entre estados que no muestran la cámara.
             val estadoQr = when {
                 !permisoConcedido -> EstadoQr.Permiso
                 uiState.escaneando -> EstadoQr.Escaneando
@@ -136,9 +133,7 @@ fun EscanearQrScreen(
                 else -> EstadoQr.Resultado
             }
 
-            // El estado Escaneando queda fuera del Crossfade a propósito:
-            // el PreviewView de la cámara se desplaza fuera de su Box si vive
-            // en una capa con alpha que lo vuelve a medir durante la transición.
+            // La cámara queda fuera de la animación para que conserve su tamaño.
             if (estadoQr == EstadoQr.Escaneando) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -157,8 +152,7 @@ fun EscanearQrScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Con weight(1f) la cámara toma todo el espacio restante en una
-                    // única medición, que es lo que espera el PreviewView
+                    // La cámara ocupa el espacio libre sin cambiar de tamaño durante la animación.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -171,7 +165,7 @@ fun EscanearQrScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Marco de ayuda para centrar el código QR
+                        // Ayuda a centrar el código QR.
                         Surface(
                             modifier = Modifier
                                 .size(250.dp)
@@ -228,7 +222,7 @@ fun EscanearQrScreen(
                             }
                         }
                     }
-                    // Este estado ya se atendió fuera del Crossfade
+                    // Este estado ya se mostró antes de la animación.
                     EstadoQr.Escaneando -> {}
                     EstadoQr.Buscando -> {
                         Column(
@@ -243,7 +237,7 @@ fun EscanearQrScreen(
                         }
                     }
                     EstadoQr.Resultado -> {
-                        // Resultado: código inválido, sin coincidencia o permiso denegado
+                        // Muestra si el código no sirve, no coincide o falta permiso.
                         val esCodigoInvalido = uiState.contenido != null && !uiState.esValido
                         val esSinCoincidencia = uiState.contenido != null && uiState.esValido
 
@@ -337,7 +331,7 @@ fun EscanearQrScreen(
     }
 }
 
-/** Estados visuales de la pantalla de escaneo QR. */
+/** Estados que puede mostrar la pantalla del escáner. */
 private enum class EstadoQr {
     Permiso,
     Escaneando,

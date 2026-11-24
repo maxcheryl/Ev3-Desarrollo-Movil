@@ -68,7 +68,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Detalle de una oportunidad seleccionada, con opción de editarla.
+ * Muestra los datos de una oportunidad y permite editarla.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

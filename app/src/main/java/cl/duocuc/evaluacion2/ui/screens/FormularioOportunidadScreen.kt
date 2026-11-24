@@ -49,9 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cl.duocuc.evaluacion2.data.local.ContactoEntity
-import cl.duocuc.evaluacion2.data.local.EventoEntity
-import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
@@ -67,9 +64,8 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Formulario de creación y edición de oportunidades.
- * Los campos obligatorios están marcados con «*» y muestran errores
- * junto al campo correspondiente.
+ * Formulario para crear o editar una oportunidad.
+ * Los errores aparecen junto a los campos que hay que corregir.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -329,7 +325,7 @@ fun FormularioOportunidadScreen(
                 onValueChange = viewModel::onObservacionesChange
             )
 
-            // Mensaje de error global (p. ej. fallo al guardar) con animación
+            // Muestra errores generales, como un fallo al guardar.
             AnimatedVisibility(
                 visible = editor.mensajeError != null,
                 enter = fadeIn(animationSpec = tween(250)) + expandVertically(),

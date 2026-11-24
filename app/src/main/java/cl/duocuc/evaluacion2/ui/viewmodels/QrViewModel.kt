@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** Estado de la pantalla de escaneo QR. */
+/** Datos que la pantalla necesita para mostrar el resultado del escaneo. */
 data class EscanearQrUiState(
     val escaneando: Boolean = true,
     val contenido: String? = null,
@@ -16,8 +16,7 @@ data class EscanearQrUiState(
 )
 
 /**
- * ViewModel del escáner QR: valida el contenido detectado según las
- * reglas de Agencia Atenas y controla el ciclo escanear → resultado.
+ * Revisa el código detectado y decide si muestra la oportunidad o un aviso.
  */
 class QrViewModel : ViewModel() {
 
@@ -25,8 +24,7 @@ class QrViewModel : ViewModel() {
     val uiState: StateFlow<EscanearQrUiState> = _uiState.asStateFlow()
 
     /**
-     * Se dispara una sola vez por escaneo: la pantalla deja de pedir códigos
-     * al detectar el primero y aquí se decide si abre detalle o muestra error.
+     * Revisa el primer código leído y guarda el resultado para la pantalla.
      */
     fun onQrDetectado(contenido: String) {
         val valido = QrMaxValidator.esValido(contenido)
@@ -57,7 +55,7 @@ class QrViewModel : ViewModel() {
         }
     }
 
-    /** Vuelve al estado inicial de escaneo. */
+    /** Borra el resultado anterior y permite escanear otra vez. */
     fun reiniciarEscaneo() {
         _uiState.value = EscanearQrUiState()
     }

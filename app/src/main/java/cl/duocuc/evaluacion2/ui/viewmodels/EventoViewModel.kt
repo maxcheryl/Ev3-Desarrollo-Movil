@@ -28,6 +28,7 @@ data class EventoEditorUiState(
     val mensajeError: String? = null
 )
 
+/** Muestra eventos y organizaciones, y guarda los cambios del formulario. */
 class EventoViewModel(
     private val repository: EventoRepository,
     private val organizacionRepository: OrganizacionRepository,
@@ -49,6 +50,7 @@ class EventoViewModel(
     init {
         viewModelScope.launch {
             try {
+                // Espera la primera lectura antes de ocultar el indicador de carga.
                 repository.observeAll().first()
             } finally {
                 _cargando.value = false
@@ -87,6 +89,7 @@ class EventoViewModel(
                 comuna = existente.comuna,
                 organizacionId = existente.organizacionId,
                 publicoEsperado = existente.publicoEsperado,
+                // En la base, las opciones se guardan juntas y separadas por «|».
                 publicoObjetivo = existente.publicoObjetivo
                     .split('|')
                     .filter(String::isNotBlank),
@@ -111,6 +114,7 @@ class EventoViewModel(
     fun onFechaChange(valor: Long) {
         _editor.update {
             it.copy(
+                // Al cambiar el inicio, también pueden dejar de ser válidas la fecha y hora de término.
                 form = it.form.copy(fecha = valor),
                 errores = it.errores.copy(
                     fecha = null,

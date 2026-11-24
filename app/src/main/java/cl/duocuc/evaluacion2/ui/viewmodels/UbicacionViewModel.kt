@@ -10,16 +10,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Estado de la pantalla de ubicación. */
+/** Datos que la pantalla muestra sobre la ubicación. */
 data class UbicacionUiState(
     val obteniendo: Boolean = false,
     val resultado: ResultadoUbicacion? = null
 )
 
 /**
- * ViewModel de la ubicación del dispositivo.
- * Obtiene la ubicación solo cuando el usuario lo solicita explícitamente
- * (una única consulta, sin seguimiento continuo) y nunca la persiste.
+ * Pide la ubicación solo cuando el usuario lo solicita.
+ * No la guarda ni sigue al dispositivo después de la consulta.
  */
 class UbicacionViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -27,7 +26,7 @@ class UbicacionViewModel(application: Application) : AndroidViewModel(applicatio
     val uiState: StateFlow<UbicacionUiState> = _uiState.asStateFlow()
 
     fun obtenerUbicacion() {
-        // Evita disparar otra consulta si aún no responde la anterior
+        // No inicia otra consulta mientras la primera siga pendiente.
         if (_uiState.value.obteniendo) return
         _uiState.value = UbicacionUiState(obteniendo = true)
 

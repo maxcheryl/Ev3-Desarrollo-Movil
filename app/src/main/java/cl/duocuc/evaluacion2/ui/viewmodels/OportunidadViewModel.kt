@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Estado del editor de formulario (creación/edición). */
+/** Datos que necesita el formulario para crear o editar una oportunidad. */
 data class OportunidadEditorUiState(
     val form: OportunidadFormState = OportunidadFormState(),
     val errores: OportunidadErrores = OportunidadErrores(),
@@ -33,9 +33,7 @@ data class OportunidadEditorUiState(
 )
 
 /**
- * ViewModel del módulo de oportunidades.
- * Expone la lista reactiva (Room + Flow) y el estado del editor
- * del formulario de creación/edición.
+ * Carga la lista de oportunidades y guarda los cambios del formulario.
  */
 class OportunidadViewModel(
     private val repository: OportunidadRepository,
@@ -68,7 +66,7 @@ class OportunidadViewModel(
     val editor: StateFlow<OportunidadEditorUiState> = _editor.asStateFlow()
 
     init {
-        // Al abrir el módulo se cargan los datos de ejemplo y se completa el historial
+        // Al abrir la sección, agrega ejemplos si hacen falta y completa el historial.
         viewModelScope.launch {
             try {
                 repository.semillarSiVacia()
@@ -80,11 +78,9 @@ class OportunidadViewModel(
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Editor del formulario
-    // ---------------------------------------------------------------------
+    // Datos y acciones del formulario.
 
-    /** Prepara el formulario para una oportunidad nueva. */
+    /** Deja el formulario listo para crear una oportunidad. */
     fun beginNueva() {
         if (sessionManager.actual?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL) {
             _editor.value = OportunidadEditorUiState(
@@ -100,7 +96,7 @@ class OportunidadViewModel(
         )
     }
 
-    /** Prepara el formulario con los datos actuales de una oportunidad. */
+    /** Carga en el formulario los datos de una oportunidad existente. */
     fun beginEditar(id: Long) {
         val existente = oportunidades.value.firstOrNull { it.id == id }
         if (existente == null) {
@@ -138,8 +134,7 @@ class OportunidadViewModel(
         )
     }
 
-    // Cada actualización limpia el error del campo correspondiente
-    // para informar visualmente que el dato fue corregido.
+    // Al cambiar un dato, borra su error para mostrar que se está corrigiendo.
 
     fun onNombreChange(valor: String) {
         _editor.update {
@@ -267,7 +262,7 @@ class OportunidadViewModel(
         }
     }
 
-    /** Valida el formulario y, si es válido, guarda en Room. */
+    /** Revisa el formulario y lo guarda si no tiene errores. */
     fun guardarOportunidad(onListo: (Long) -> Unit) {
         val usuario = sessionManager.actual
         if (usuario == null) {
@@ -459,7 +454,7 @@ class OportunidadViewModel(
     }
 
     companion object {
-        // Factory clásica para inyectarle el Application (Room lo necesita)
+        // Entrega la app para que se pueda abrir la base de datos.
         fun factory(
             application: Application,
             sessionManager: SessionManager

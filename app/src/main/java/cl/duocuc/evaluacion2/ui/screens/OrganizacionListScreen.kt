@@ -33,6 +33,7 @@ import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.model.TipoOrganizacion
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 
+/** Muestra las organizaciones guardadas y permite abrir una para editarla. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrganizacionListScreen(

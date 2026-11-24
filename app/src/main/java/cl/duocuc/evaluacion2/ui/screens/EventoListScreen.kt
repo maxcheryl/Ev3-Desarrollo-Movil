@@ -38,6 +38,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+/** Muestra los eventos y permite abrir uno para editarlo. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventoListScreen(
@@ -53,6 +54,7 @@ fun EventoListScreen(
     val organizaciones by viewModel.organizaciones.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
 
+    // Busca el nombre de cada organización para mostrarlo junto al evento.
     val nombresOrganizacion = remember(organizaciones) {
         organizaciones.associate { it.id to it.nombre }
     }

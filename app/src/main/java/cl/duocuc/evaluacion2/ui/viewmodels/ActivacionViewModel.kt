@@ -102,6 +102,7 @@ class ActivacionViewModel(
     }
 
     fun cargar(oportunidadId: Long) {
+        // Si esta activación ya está cargada, conserva el formulario y no repite la carga.
         if (_uiState.value.oportunidadId == oportunidadId && !_uiState.value.cargando) return
         val usuarios = _uiState.value.usuarios
         _uiState.value = ActivacionUiState(
@@ -164,6 +165,7 @@ class ActivacionViewModel(
                     )
                 }
             } catch (e: CancellationException) {
+                // No muestra la cancelación como un error.
                 throw e
             } catch (e: Exception) {
                 _uiState.update {

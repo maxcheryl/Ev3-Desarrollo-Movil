@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ActivacionDao {
 
+    /** Avisa a la pantalla cuando cambia la activación. */
     @Query("SELECT * FROM activaciones WHERE oportunidadId = :oportunidadId LIMIT 1")
     fun observePorOportunidad(oportunidadId: Long): Flow<ActivacionEntity?>
 

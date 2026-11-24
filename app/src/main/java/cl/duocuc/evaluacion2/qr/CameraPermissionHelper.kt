@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 
-/** Consulta simple del permiso de cámara antes de abrir el escáner. */
+/** Revisa si la app tiene permiso para usar la cámara. */
 object CameraPermissionHelper {
 
     fun tienePermisoCamara(context: Context): Boolean {

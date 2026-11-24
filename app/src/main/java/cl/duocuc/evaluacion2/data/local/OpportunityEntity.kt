@@ -6,13 +6,12 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * Fila de la tabla «oportunidades».
- * Los catálogos (tipo, prioridad, estado, potencial) se guardan como texto
- * con el name del enum: es más simple de leer en la BD y permite
- * mostrar la etiqueta bonita en la UI sin guardar dos veces lo mismo.
- * Un id igual a 0 indica registro nuevo; Room le asigna uno autogenerado.
- * Las referencias a evento, organización, contacto y responsable son ids
- * lógicos: la integridad se mantiene desde los repositorios.
+ * Datos de una oportunidad guardados en la base.
+ * El tipo, la prioridad y el estado se guardan por nombre; la pantalla usa
+ * ese nombre para mostrar una etiqueta más fácil de leer.
+ * Un id de 0 indica que es nueva; Room asigna el id al guardarla.
+ * Los códigos de evento, organización, contacto y responsable se revisan
+ * en los repositorios antes de guardar.
  */
 @Entity(
     tableName = "oportunidades",

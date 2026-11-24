@@ -27,6 +27,7 @@ data class ContactoEditorUiState(
     val mensajeError: String? = null
 )
 
+/** Muestra contactos y organizaciones, y guarda los cambios del formulario. */
 class ContactoViewModel(
     private val repository: ContactoRepository,
     private val organizacionRepository: OrganizacionRepository
@@ -47,6 +48,7 @@ class ContactoViewModel(
     init {
         viewModelScope.launch {
             try {
+                // Espera la primera lectura antes de ocultar el indicador de carga.
                 repository.observeAll().first()
             } finally {
                 _cargando.value = false
@@ -57,6 +59,7 @@ class ContactoViewModel(
     fun beginNueva() {
         _editor.value = ContactoEditorUiState(
             form = ContactoFormState(
+                // Deja elegida la primera organización para facilitar el registro.
                 organizacionId = organizaciones.value.firstOrNull()?.id
             )
         )
@@ -149,6 +152,7 @@ class ContactoViewModel(
 
     fun guardar(onListo: (Long) -> Unit) {
         val actual = _editor.value
+        // No guarda hasta que todos los campos sean válidos.
         val errores = ContactoValidator.validar(actual.form)
 
         if (errores.hayErrores) {

@@ -12,6 +12,7 @@ interface ResultadoDao {
     @Query("SELECT * FROM resultados WHERE activacionId = :activacionId LIMIT 1")
     suspend fun obtenerPorActivacion(activacionId: Long): ResultadoEntity?
 
+    /** Avisa cuando cambia el resultado de la activación. */
     @Query("SELECT * FROM resultados WHERE activacionId = :activacionId LIMIT 1")
     fun observePorActivacion(activacionId: Long): Flow<ResultadoEntity?>
 

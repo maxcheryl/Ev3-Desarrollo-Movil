@@ -8,6 +8,7 @@ import java.util.TimeZone
 
 private fun fechaLocalEnUtc(): Long {
     val hoy = Calendar.getInstance()
+    // Usa la misma hora que el selector para que el día no cambie.
     return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
         clear()
         set(

@@ -16,8 +16,8 @@ import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Repositorio de oportunidades: única puerta de acceso a la persistencia
- * local (Room). La UI y los ViewModels no conocen la base de datos.
+ * Lee y guarda oportunidades en Room.
+ * Las pantallas usan este repositorio en lugar de acceder a la base directamente.
  */
 class OportunidadRepository(
     private val dao: OpportunityDao,
@@ -59,7 +59,7 @@ class OportunidadRepository(
         dao.deleteById(id)
     }
 
-    /** Inserta una oportunidad nueva o actualiza una existente. Devuelve el id. */
+    /** Guarda una oportunidad nueva o actualiza una existente, y devuelve su id. */
     suspend fun guardar(oportunidad: OpportunityEntity, usuarioId: Long): Long =
         ejecutorTransacciones.ejecutar {
             if (oportunidad.id == 0L) {
@@ -88,7 +88,7 @@ class OportunidadRepository(
                     responsableNuevo = nombreResponsable(oportunidad.responsableId)
                 )
                 val ahora = System.currentTimeMillis()
-                // Al editar se conserva la fecha de creación original y solo se mueve la de actualización
+                // Al editar, conserva la fecha de creación y actualiza la fecha de modificación.
                 dao.update(
                     oportunidad.copy(
                         fechaCreacion = anterior.fechaCreacion,
@@ -110,7 +110,7 @@ class OportunidadRepository(
             }
         }
 
-    /** Completa el historial de creación de oportunidades antiguas o de ejemplo. */
+    /** Agrega al historial de las oportunidades antiguas el registro de su creación. */
     suspend fun completarHistorialCreacion(usuarioId: Long) {
         ejecutorTransacciones.ejecutar {
             dao.listarSinHistorial().forEach { oportunidad ->
@@ -131,7 +131,7 @@ class OportunidadRepository(
         }
     }
 
-    /** Carga datos ficticios de ejemplo solo si la tabla está vacía. */
+    /** Agrega oportunidades de ejemplo solo si todavía no hay ninguna guardada. */
     suspend fun semillarSiVacia() {
         if (contar() > 0) return
         datosDeEjemplo().forEach { dao.insert(it) }

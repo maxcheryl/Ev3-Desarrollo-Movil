@@ -11,9 +11,6 @@ interface GestionDao {
     @Query("SELECT * FROM gestiones WHERE oportunidadId = :oportunidadId ORDER BY fecha DESC")
     fun observePorOportunidad(oportunidadId: Long): Flow<List<GestionEntity>>
 
-    @Query("SELECT COUNT(*) FROM gestiones WHERE oportunidadId = :oportunidadId")
-    suspend fun countPorOportunidad(oportunidadId: Long): Int
-
     @Insert
     suspend fun insert(gestion: GestionEntity): Long
 

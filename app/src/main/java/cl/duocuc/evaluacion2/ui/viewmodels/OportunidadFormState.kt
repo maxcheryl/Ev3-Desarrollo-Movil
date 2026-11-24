@@ -3,8 +3,8 @@ package cl.duocuc.evaluacion2.ui.viewmodels
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 
 /**
- * Estado del formulario de creación/edición de oportunidades.
- * Los campos de selección almacenan el nombre del enum correspondiente.
+ * Datos que el formulario muestra al crear o editar una oportunidad.
+ * Las opciones guardan el nombre elegido, como tipo o prioridad.
  */
 data class OportunidadFormState(
     val id: Long = 0,
@@ -26,7 +26,7 @@ data class OportunidadFormState(
     val fechaCreacion: Long? = null
 )
 
-/** Errores de validación por campo (solo la UI decide cómo mostrarlos). */
+/** Mensajes de error que la pantalla muestra junto a cada campo. */
 data class OportunidadErrores(
     val nombre: String? = null,
     val tipo: String? = null,
@@ -62,7 +62,7 @@ data class OportunidadErrores(
         ).any { it != null }
 }
 
-/** Opciones válidas de la fuente u origen de la oportunidad. */
+/** Opciones disponibles para indicar de dónde llegó la oportunidad. */
 object FuentesOportunidad {
     val opciones = listOf(
         "Redes sociales",

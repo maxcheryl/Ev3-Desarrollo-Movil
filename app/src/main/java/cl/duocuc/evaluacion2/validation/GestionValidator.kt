@@ -12,6 +12,7 @@ object GestionValidator {
 
     private val patronHora = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
 
+    // Revisa la gestión y también que las fechas y horas tengan un orden válido.
     fun validar(form: GestionFormState): GestionErrores {
         val horaGestionValida = patronHora.matches(form.horaGestion)
         val horaProximaValida = patronHora.matches(form.horaProximaAccion)
@@ -99,6 +100,7 @@ object GestionValidator {
 
     private fun combinarFechaHora(fecha: Long?, hora: String): Long? {
         if (fecha == null || !patronHora.matches(hora)) return null
+        // Une el día elegido y la hora escrita para poder compararlos.
         val partes = hora.split(':')
         val fechaSeleccionada = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
             timeInMillis = fecha

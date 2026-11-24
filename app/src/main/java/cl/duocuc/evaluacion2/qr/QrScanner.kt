@@ -25,8 +25,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Vista previa de cámara con análisis de códigos QR (CameraX + ML Kit).
- * Detecta un solo código y detiene el análisis hasta reiniciar la pantalla.
+ * Muestra la cámara y busca códigos QR.
+ * Al encontrar uno, deja de leer hasta que se reinicie la pantalla.
  */
 @SuppressLint("UnsafeOptInUsageError")
 @Composable
@@ -37,32 +37,32 @@ fun QrScanner(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Mantener actualizado el callback sin reiniciar CameraX
+    // Actualiza la función de respuesta sin reiniciar la cámara.
     val currentCallback = rememberUpdatedState(onQrCodeScanned)
 
-    // Crear una única vista previa
+    // Crea la vista de cámara una sola vez.
     val previewView = remember(context) {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
 
-            // Mayor compatibilidad con emuladores
+            // Este modo funciona mejor en algunos emuladores.
             implementationMode =
                 PreviewView.ImplementationMode.COMPATIBLE
         }
     }
 
-    // Mostrar la cámara en Compose
+    // Muestra la cámara dentro de la pantalla.
     AndroidView(
         factory = { previewView },
         modifier = modifier.fillMaxSize()
     )
 
-    // Gestionar la cámara fuera de AndroidView.update
+    // Inicia y detiene la cámara según se abre o se cierra esta pantalla.
     DisposableEffect(context, lifecycleOwner, previewView) {
 
         val cameraExecutor = Executors.newSingleThreadExecutor()
 
-        // Configurar ML Kit para reconocer únicamente QR
+        // Busca solo códigos QR.
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
             .build()
@@ -72,14 +72,14 @@ fun QrScanner(
         val disposed = AtomicBoolean(false)
         val detected = AtomicBoolean(false)
 
-        // Configurar la vista previa
+        // Prepara la imagen que verá el usuario.
         val preview = Preview.Builder()
             .build()
             .apply {
                 setSurfaceProvider(previewView.surfaceProvider)
             }
 
-        // Configurar el análisis de imágenes
+        // Prepara la lectura de las imágenes de la cámara.
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(
                 ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
@@ -152,7 +152,7 @@ fun QrScanner(
             }
         }
 
-        // Obtener el proveedor de CameraX
+        // Prepara la cámara para usarla en esta pantalla.
         val cameraProviderFuture =
             ProcessCameraProvider.getInstance(context)
 
@@ -168,11 +168,11 @@ fun QrScanner(
 
                     if (!disposed.get()) {
 
-                        // Seleccionar cámara trasera
+                        // Usa la cámara trasera.
                         val cameraSelector =
                             CameraSelector.DEFAULT_BACK_CAMERA
 
-                        // Vincular Preview e ImageAnalysis
+                        // Conecta la vista de cámara y la lectura QR a esta pantalla.
                         cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             cameraSelector,
@@ -199,7 +199,7 @@ fun QrScanner(
 
         }, ContextCompat.getMainExecutor(context))
 
-        // Liberar recursos al salir de la pantalla
+        // Cierra la cámara y el lector al salir de la pantalla.
         onDispose {
 
             disposed.set(true)

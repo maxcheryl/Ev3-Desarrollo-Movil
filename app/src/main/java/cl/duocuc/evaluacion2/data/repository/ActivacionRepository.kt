@@ -127,6 +127,7 @@ class ActivacionRepository(
         personasInteresadas: Int = 0,
         inscripciones: Int = 0
     ) = ejecutorTransacciones.ejecutar {
+        // Guarda el resultado y sus cambios juntos para que no queden datos a medias.
         require(nuevoEstado == EstadoGestion.ACTIVACION_REALIZADA.name ||
             nuevoEstado == EstadoGestion.ACTIVACION_CANCELADA.name
         ) {

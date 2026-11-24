@@ -20,9 +20,8 @@ import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
 /**
- * Única Activity de la app (patrón single-activity con Compose).
- * Los ViewModels se crean aquí y se comparten con toda la navegación,
- * de modo que sus estados sobreviven al cambio de pantalla.
+ * La app usa una sola pantalla base.
+ * Aquí se crean los objetos que comparten datos entre las pantallas.
  */
 class MainActivity : ComponentActivity() {
 

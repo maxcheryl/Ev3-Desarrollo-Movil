@@ -60,6 +60,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+/** Registra una gestión y, si hace falta, la próxima acción para la oportunidad. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrarGestionScreen(
@@ -74,6 +75,7 @@ fun RegistrarGestionScreen(
     val puedeRegistrarSeguimiento by viewModel.puedeRegistrarSeguimiento.collectAsState()
     val context = LocalContext.current
 
+    // Al abrir otra oportunidad, prepara un formulario nuevo para ella.
     LaunchedEffect(oportunidadId) {
         viewModel.seleccionarOportunidad(oportunidadId)
         viewModel.beginNueva()
@@ -85,6 +87,7 @@ fun RegistrarGestionScreen(
     val opcionesTipo = TipoAccionSeguimiento.entries.map {
         OpcionDropdown(it.name, it.etiqueta)
     }
+    // Los resultados finales se registran en la pantalla de activación.
     val opcionesEstado = listOf(OpcionDropdown("", "Sin cambiar")) +
         EstadoGestion.entries
             .filterNot {
@@ -157,6 +160,7 @@ fun RegistrarGestionScreen(
 
     fun abrirSelectorHora(valorActual: String, onChange: (String) -> Unit) {
         val calendar = Calendar.getInstance()
+        // Si hay una hora guardada, úsala como valor inicial del selector.
         valorActual.split(':').takeIf { it.size == 2 }?.let {
             calendar.set(Calendar.HOUR_OF_DAY, it[0].toIntOrNull() ?: 9)
             calendar.set(Calendar.MINUTE, it[1].toIntOrNull() ?: 0)

@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 
 /**
- * Pantalla de inicio de sesión contra los usuarios locales de demostración.
+ * Permite entrar con las cuentas de demostración guardadas en el dispositivo.
  */
 @Composable
 fun LoginScreen(
@@ -84,7 +84,7 @@ fun LoginScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Campo correo
+        // Aquí se escribe el correo.
         OutlinedTextField(
             value = estado.correo,
             onValueChange = viewModel::onCorreoChange,
@@ -104,7 +104,7 @@ fun LoginScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        // Campo contraseña
+        // Aquí se escribe la contraseña.
         OutlinedTextField(
             value = estado.clave,
             onValueChange = viewModel::onClaveChange,
@@ -123,7 +123,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Error de credenciales inválidas (aparece/desaparece con animación)
+        // Muestra un aviso si el correo o la contraseña no son válidos.
         AnimatedVisibility(
             visible = estado.mensajeError != null,
             enter = fadeIn(animationSpec = tween(250)) + expandVertically(),

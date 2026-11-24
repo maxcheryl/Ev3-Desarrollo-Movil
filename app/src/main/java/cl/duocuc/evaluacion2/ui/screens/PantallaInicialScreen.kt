@@ -22,9 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Pantalla inicial de la aplicación "Agencia Atenas".
- * Muestra la identidad visual del MVP de gestión de oportunidades
- * y activaciones corporativas.
+ * Presenta Agencia Atenas y el acceso al inicio de sesión.
  */
 @Composable
 fun PantallaInicialScreen(
@@ -38,7 +36,7 @@ fun PantallaInicialScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logotipo de la agencia
+        // Logo de la agencia.
         Icon(
             imageVector = Icons.Outlined.BusinessCenter,
             contentDescription = "Logo de Agencia Atenas",
@@ -48,7 +46,7 @@ fun PantallaInicialScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Nombre de la aplicación
+        // Nombre de la aplicación.
         Text(
             text = "Agencia Atenas",
             style = MaterialTheme.typography.headlineLarge,
@@ -58,7 +56,7 @@ fun PantallaInicialScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // Descripción del alcance del MVP
+        // Resumen de lo que permite hacer la aplicación.
         Text(
             text = "Gestión de oportunidades y activaciones corporativas",
             style = MaterialTheme.typography.titleMedium,
@@ -77,7 +75,7 @@ fun PantallaInicialScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Indicador de modo demostración (datos ficticios)
+        // Avisa que algunos datos son de demostración.
         Text(
             text = "Versión de demostración · información ficticia",
             style = MaterialTheme.typography.bodySmall,

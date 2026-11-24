@@ -65,6 +65,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+/** Permite coordinar una activación, adjuntar evidencias y guardar su resultado. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivacionScreen(
@@ -87,6 +88,7 @@ fun ActivacionScreen(
     fun adjuntar(uri: Uri?, tipo: TipoEvidencia) {
         if (uri == null) return
         try {
+            // Guarda el permiso para poder abrir el archivo más adelante.
             context.contentResolver.takePersistableUriPermission(
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -96,6 +98,7 @@ fun ActivacionScreen(
             return
         }
 
+        // Usa el nombre del archivo; si Android no lo entrega, usa el último dato de la URI.
         val nombre = context.contentResolver.query(
             uri,
             arrayOf(OpenableColumns.DISPLAY_NAME),
@@ -117,6 +120,7 @@ fun ActivacionScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri -> adjuntar(uri, TipoEvidencia.DOCUMENTO) }
 
+    // Carga la información cuando se abre otra oportunidad.
     LaunchedEffect(oportunidadId) {
         viewModel.cargar(oportunidadId)
     }

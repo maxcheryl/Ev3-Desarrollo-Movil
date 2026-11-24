@@ -3,6 +3,7 @@ package cl.duocuc.evaluacion2.data.local
 import androidx.sqlite.db.SupportSQLiteDatabase
 import cl.duocuc.evaluacion2.data.model.PerfilUsuario
 
+// Cuentas que se agregan automáticamente al crear la base de datos.
 object DatabaseSeed {
 
     const val USUARIO_DALI_ID = 1L

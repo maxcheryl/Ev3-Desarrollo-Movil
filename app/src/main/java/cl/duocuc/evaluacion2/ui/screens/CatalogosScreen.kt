@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.ui.components.TarjetaAcceso
 
+/** Da acceso a las listas de organizaciones y contactos. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogosScreen(

@@ -32,6 +32,7 @@ import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActivacionViewModelTest : StringSpec({
+    // Hace que las tareas de prueba avancen solo cuando se indica.
     val dispatcher = StandardTestDispatcher()
 
     beforeSpec { Dispatchers.setMain(dispatcher) }
@@ -95,6 +96,7 @@ private class ActivacionViewModelTestCases {
         (state.impacto) shouldBe ("Alto")
         (state.cargando) shouldBe false
 
+        // Volver a cargar la misma oportunidad no debe repetir las consultas.
         viewModel.cargar(4)
         advanceUntilIdle()
         coVerify(exactly = 1) { repository.obtenerOportunidad(4) }
@@ -149,6 +151,7 @@ private class ActivacionViewModelTestCases {
         viewModel.onCostoChange("12,75")
         viewModel.guardarCoordinacion()
         advanceUntilIdle()
+        // La coma decimal se convierte a punto antes de guardar el costo.
         val savedCosts = mutableListOf<ActivacionEntity>()
         coVerify(exactly = 2) { repository.guardarActivacion(capture(savedCosts), 1) }
         (savedCosts[0].costo) shouldBe null

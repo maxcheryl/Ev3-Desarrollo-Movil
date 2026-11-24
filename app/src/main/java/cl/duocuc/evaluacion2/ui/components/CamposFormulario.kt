@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 
 data class OpcionDropdown(val valor: String, val etiqueta: String)
 
+/** Campo de texto que muestra un mensaje debajo cuando hay un error. */
 @Composable
 fun CampoTextoFormulario(
     label: String,
@@ -50,6 +51,7 @@ fun CampoTextoFormulario(
     )
 }
 
+/** Lista para elegir una opción y mostrar un mensaje si hay un error. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampoDropdownFormulario(

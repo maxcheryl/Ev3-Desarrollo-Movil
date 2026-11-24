@@ -72,6 +72,7 @@ private class GestionValidatorTestCases {
         )
         (sinFecha.proximaAccion) shouldNotBe null
 
+        // La próxima gestión tampoco puede quedar antes de la actual.
         val fechaAnterior = GestionValidator.validar(
             formularioValido().copy(
                 proximaAccion = "Enviar propuesta",

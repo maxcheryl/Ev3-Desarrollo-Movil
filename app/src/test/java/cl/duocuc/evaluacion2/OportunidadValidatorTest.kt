@@ -53,7 +53,7 @@ private class OportunidadValidatorTestCases {
         (errores.potencialComercial) shouldNotBe null
         (errores.fechaIdentificacion) shouldNotBe null
         (errores.comuna) shouldNotBe null
-        // El estado inicia en «Evento identificado», por lo que ya es válido
+        // El formulario empieza con un estado válido: «Evento identificado».
         (errores.estado) shouldBe null
         (errores.hayErrores) shouldBe true
     }

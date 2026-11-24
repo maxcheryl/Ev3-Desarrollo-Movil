@@ -22,6 +22,7 @@ private class SessionManagerTestCases {
             perfil = PerfilUsuario.EJECUTIVO_COMERCIAL
         )
 
+        // La sesión parte vacía, se llena al iniciar y vuelve a vaciarse al cerrar.
         (manager.actual) shouldBe null
         manager.iniciar(usuario)
         (manager.actual) shouldBe (usuario)

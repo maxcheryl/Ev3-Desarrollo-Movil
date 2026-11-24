@@ -49,8 +49,8 @@ import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 import java.util.Locale
 
 /**
- * Pantalla de ubicación del dispositivo: una única consulta por acción
- * del usuario, resultado visible solo en pantalla (no se persiste).
+ * Pide la ubicación cuando el usuario lo solicita y la muestra en pantalla.
+ * No guarda el resultado ni sigue al dispositivo.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,7 +130,7 @@ fun UbicacionScreen(
                 Text("Obtener mi ubicación")
             }
 
-            // Resultado animado al obtener (o fallar) la ubicación
+            // Muestra el resultado o el aviso de error con una animación.
             AnimatedVisibility(
                 visible = uiState.obteniendo || uiState.resultado != null,
                 enter = fadeIn(animationSpec = tween(250)) + expandVertically(),

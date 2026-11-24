@@ -65,6 +65,7 @@ enum class CampoEventoPost {
     ORGANIZACION
 }
 
+/** Carga publicaciones externas y prepara las operaciones del formulario. */
 class PostViewModel(
     private val repository: PostRepository = PostRepository()
 ) : ViewModel() {
@@ -76,6 +77,7 @@ class PostViewModel(
         cargarPublicaciones()
     }
 
+    // Carga de nuevo la lista y muestra un mensaje si el servicio no responde.
     fun cargarPublicaciones() {
         viewModelScope.launch {
             _uiState.value = PostUiState(cargando = true)
@@ -140,6 +142,7 @@ class PostViewModel(
         ubicacion: String,
         organizacion: String
     ) {
+        // Revisa los datos antes de enviarlos al servicio de prueba.
         val id = idEvento.trim().toIntOrNull()
         val errores = EventoPostErrores(
             idEvento = if (id == null || id <= 0) {

@@ -34,5 +34,6 @@ private fun <T : Any> Response<T>.requireBody(): T {
     if (!isSuccessful) {
         throw HttpException(this)
     }
+    // Si la respuesta viene vacía, falta el dato que necesita la pantalla.
     return body() ?: throw RespuestaApiVaciaException()
 }

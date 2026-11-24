@@ -9,8 +9,8 @@ import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadErrores
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadFormState
 
 /**
- * Lógica de validación del formulario, separada de la presentación visual.
- * La UI solo consume [OportunidadErrores]; aquí no hay referencias a Compose.
+ * Revisa los datos del formulario antes de guardarlos.
+ * Devuelve los errores que muestra la pantalla.
  */
 object OportunidadValidator {
 
@@ -96,8 +96,7 @@ object OportunidadValidator {
         )
     }
 
-    // valueOf lanza excepción si el string no pertenece al enum;
-    // runCatching la convierte en un simple false para validar sin try/catch
+    // Si el texto no coincide con una opción, se considera inválido.
     fun esTipoValido(valor: String): Boolean =
         runCatching { TipoOportunidad.valueOf(valor) }.isSuccess
 

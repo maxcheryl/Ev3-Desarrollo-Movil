@@ -25,6 +25,7 @@ data class OrganizacionEditorUiState(
     val mensajeError: String? = null
 )
 
+/** Muestra organizaciones y guarda los cambios del formulario. */
 class OrganizacionViewModel(
     private val repository: OrganizacionRepository
 ) : ViewModel() {
@@ -41,6 +42,7 @@ class OrganizacionViewModel(
     init {
         viewModelScope.launch {
             try {
+                // Espera la primera lectura antes de ocultar el indicador de carga.
                 repository.observeAll().first()
             } finally {
                 _cargando.value = false
@@ -146,6 +148,7 @@ class OrganizacionViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                // La base no permite repetir el nombre de una organización.
                 val mensaje = if (e.message?.contains("UNIQUE", ignoreCase = true) == true) {
                     "Ya existe una organización con ese nombre."
                 } else {

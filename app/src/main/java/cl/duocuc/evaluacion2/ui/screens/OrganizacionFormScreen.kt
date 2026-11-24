@@ -44,6 +44,7 @@ import cl.duocuc.evaluacion2.ui.components.CampoTextoFormulario
 import cl.duocuc.evaluacion2.ui.components.OpcionDropdown
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 
+/** Crea una organización o permite actualizar sus datos. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrganizacionFormScreen(
@@ -55,6 +56,7 @@ fun OrganizacionFormScreen(
 ) {
     val editor by viewModel.editor.collectAsState()
 
+    // Carga la organización elegida o prepara el formulario para una nueva.
     LaunchedEffect(organizacionId) {
         if (organizacionId == null || organizacionId == 0L) {
             viewModel.beginNueva()
@@ -64,6 +66,7 @@ fun OrganizacionFormScreen(
     }
 
     val esEdicion = editor.form.id != 0L
+    // Al editar, conserva el tipo anterior aunque ya no se ofrezca para nuevas organizaciones.
     val opcionesTipo = TipoOrganizacion.entries
         .filter { it != TipoOrganizacion.INSTITUCION || editor.form.tipo == it.name }
         .map { OpcionDropdown(it.name, it.etiqueta) }

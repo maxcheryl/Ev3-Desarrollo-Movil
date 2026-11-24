@@ -47,10 +47,12 @@ private class RepositoryDelegationTestCases {
         coEvery { eventoDao.insert(evento) } returns 13L
         coEvery { eventoDao.update(any()) } just Runs
 
+        // Con id 0, cada repositorio crea un registro nuevo.
         (OrganizacionRepository(orgDao).guardar(org)) shouldBe (11L)
         (ContactoRepository(contactoDao).guardar(contacto)) shouldBe (12L)
         (EventoRepository(eventoDao).guardar(evento)) shouldBe (13L)
 
+        // Con un id existente, cada repositorio actualiza ese mismo registro.
         val orgEditado = org.copy(id = 5)
         val contactoEditado = contacto.copy(id = 6)
         val eventoEditado = evento.copy(id = 7)

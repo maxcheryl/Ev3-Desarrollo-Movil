@@ -1,10 +1,9 @@
 package cl.duocuc.evaluacion2.data.model
 
 /**
- * Catálogos de la aplicación (una sola fuente de verdad).
- * En la base de datos se almacena [name] y en la UI se muestra [etiqueta].
- * Los métodos desdeNombre() toleran datos guardados en versiones
- * anteriores: si el nombre no existe, devuelven el valor por defecto.
+ * Opciones fijas que usa la aplicación.
+ * La base guarda el nombre y la pantalla muestra un texto más claro.
+ * Si encuentra un nombre que ya no existe, usa una opción predeterminada.
  */
 
 enum class TipoOportunidad(val etiqueta: String) {

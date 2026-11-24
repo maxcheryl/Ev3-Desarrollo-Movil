@@ -27,6 +27,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PostViewModelTest : StringSpec({
+    // Permite avanzar las tareas de prueba paso a paso.
     val dispatcher = StandardTestDispatcher()
 
     beforeSpec { Dispatchers.setMain(dispatcher) }
@@ -63,6 +64,7 @@ private class PostViewModelTestCases {
     }
 
     fun mapeaErrorDeRedTimeoutHttpYJsonYPermiteReintentar() = runTest {
+        // Después de cada error, se vuelve a intentar con un tipo distinto de respuesta.
         val repository = mockk<PostRepository>()
         coEvery { repository.obtenerPublicaciones() } throws UnknownHostException()
         val viewModel = PostViewModel(repository)
@@ -190,6 +192,7 @@ private class PostViewModelTestCases {
         (viewModel.uiState.value.mutacionFallida) shouldBe true
         coVerify(exactly = 1) { repository.crearPublicacion(any()) }
 
+        // El formato parece correcto, pero el 30 de febrero no existe.
         viewModel.crearEvento("42", "Feria", "2025-02-30", "Providencia", "Agencia")
         (viewModel.uiState.value.erroresEvento.fecha) shouldBe
             ("Usa una fecha real con formato AAAA-MM-DD.")

@@ -8,14 +8,13 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
- * DAO de la tabla de oportunidades.
- * Los métodos que devuelven Flow mantienen la UI actualizada
- * en vivo sin tener que recargar a mano.
+ * Consulta y modifica las oportunidades guardadas.
+ * Las listas avisan a la pantalla cuando cambian los datos.
  */
 @Dao
 interface OpportunityDao {
 
-    /** La lista se ordena por la última actualización para ver primero lo más reciente. */
+    /** Muestra primero la oportunidad que se actualizó más recientemente. */
     @Query("SELECT * FROM oportunidades ORDER BY fechaActualizacion DESC")
     fun observeAll(): Flow<List<OpportunityEntity>>
 
@@ -32,7 +31,7 @@ interface OpportunityDao {
     )
     suspend fun listarSinHistorial(): List<OpportunityEntity>
 
-    // REPLACE permite usar el mismo método para crear y actualizar
+    // Guarda la oportunidad nueva o reemplaza la que ya tiene ese id.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(oportunidad: OpportunityEntity): Long
 

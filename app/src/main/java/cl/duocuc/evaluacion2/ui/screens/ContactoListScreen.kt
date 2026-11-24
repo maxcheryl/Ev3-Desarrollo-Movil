@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.local.ContactoEntity
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 
+/** Muestra los contactos guardados junto con su organización. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactoListScreen(
@@ -46,6 +47,7 @@ fun ContactoListScreen(
     val organizaciones by viewModel.organizaciones.collectAsState()
     val cargando by viewModel.cargando.collectAsState()
 
+    // Busca el nombre de cada organización para mostrarlo junto al contacto.
     val nombresOrganizacion = remember(organizaciones) {
         organizaciones.associate { it.id to it.nombre }
     }

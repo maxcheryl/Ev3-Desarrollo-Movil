@@ -12,6 +12,10 @@ data class UsuarioSesion(
     val perfil: PerfilUsuario
 )
 
+/**
+ * Guarda quién inició sesión mientras la app está abierta.
+ * Al cerrar la app, la sesión se pierde.
+ */
 class SessionManager {
 
     private val _usuario = MutableStateFlow<UsuarioSesion?>(null)

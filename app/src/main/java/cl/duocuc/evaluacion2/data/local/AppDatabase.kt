@@ -7,9 +7,8 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Base de datos Room de la aplicación.
- * Se usa una única instancia para todo el proceso porque abrir
- * varias conexiones es caro y no aporta nada en una app tan pequeña.
+ * Base de datos local de la aplicación.
+ * Se comparte una sola instancia mientras la app está abierta.
  */
 @Database(
     entities = [
@@ -44,7 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instance: AppDatabase? = null
 
-        // Room vuelve a crear las tablas y este callback inserta los usuarios base.
+        // Al crear las tablas, agrega los usuarios de demostración.
         private val seedCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
@@ -52,8 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // Double-checked locking: @Volatile garantiza que todos vean
-        // la instancia recién creada y synchronized evita crear dos a la vez
+        // Reutiliza la base de datos si ya existe; si no, crea una sola instancia.
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(

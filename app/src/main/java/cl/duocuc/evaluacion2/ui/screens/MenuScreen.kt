@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.ui.components.TarjetaAcceso
 
 /**
- * Menú principal de la aplicación: punto de acceso a los módulos.
+ * Menú principal para abrir las secciones de la aplicación.
  */
 @Composable
 fun MenuScreen(

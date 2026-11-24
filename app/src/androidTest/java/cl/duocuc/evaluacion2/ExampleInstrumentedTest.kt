@@ -9,15 +9,13 @@ import org.junit.runner.RunWith
 import org.junit.Assert.*
 
 /**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
+ * Comprueba que la aplicación puede abrirse en un dispositivo Android.
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {
-        // Context of the app under test.
+        // Obtiene el contexto de la aplicación que se está probando.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("cl.duocuc.evaluacion2", appContext.packageName)
     }

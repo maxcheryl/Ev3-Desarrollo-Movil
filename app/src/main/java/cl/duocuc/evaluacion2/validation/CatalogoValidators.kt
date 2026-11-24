@@ -17,6 +17,7 @@ object OrganizacionValidator {
         RegexOption.IGNORE_CASE
     )
 
+    // Revisa los datos obligatorios y el formato del sitio web.
     fun validar(form: OrganizacionFormState): OrganizacionErrores {
         return OrganizacionErrores(
             nombre = when {
@@ -55,6 +56,7 @@ object ContactoValidator {
     )
     private val patronTelefono = Regex("^\\+?[0-9() .-]+$")
 
+    // Comprueba los datos del contacto y que tenga una organización asignada.
     fun validar(form: ContactoFormState): ContactoErrores {
         return ContactoErrores(
             nombre = when {
@@ -106,6 +108,7 @@ object EventoValidator {
         "Otro"
     )
 
+    // Revisa fechas y horas, además de los datos del evento.
     fun validar(form: EventoFormState): EventoErrores {
         val horaInicioValida = patronHora.matches(form.horaInicio)
         val horaTerminoValida = patronHora.matches(form.horaTermino)
@@ -192,6 +195,7 @@ private fun validarTextoRequerido(valor: String, campo: String, maximo: Int): St
         else -> null
     }
 
+// Si el campo es opcional, permite dejarlo vacío.
 private fun validarTextoOpcional(valor: String, campo: String, maximo: Int): String? =
     when {
         valor.isBlank() -> null
@@ -213,6 +217,7 @@ private fun validarLongitudOpcional(
 
 private fun validarCantidadOpcional(valor: String, mensajeError: String): String? {
     if (valor.isBlank()) return null
+    // Rechaza texto y cantidades negativas.
     val cantidad = valor.trim().toIntOrNull()
     return if (cantidad == null || cantidad < 0) mensajeError else null
 }

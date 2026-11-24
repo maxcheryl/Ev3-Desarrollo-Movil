@@ -46,6 +46,7 @@ import cl.duocuc.evaluacion2.data.model.Prioridad
 import cl.duocuc.evaluacion2.ui.components.TarjetaOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 
+/** Muestra las oportunidades y permite buscarlas y filtrarlas. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OportunidadListScreen(
@@ -71,6 +72,7 @@ fun OportunidadListScreen(
     val opcionesPrioridad = remember {
         listOf("" to "Todas") + Prioridad.entries.map { it.name to it.etiqueta }
     }
+    // Ofrece los responsables asignados y también la opción de ver los que no tienen uno.
     val opcionesResponsable = remember(oportunidades, usuarios) {
         val asignados = oportunidades.mapNotNull { oportunidad ->
             oportunidad.responsableId?.let { id ->
@@ -86,6 +88,7 @@ fun OportunidadListScreen(
             }
     }
     val termino = busqueda.trim()
+    // Combina la búsqueda por texto con los filtros de estado, prioridad y responsable.
     val oportunidadesFiltradas = oportunidades.filter { oportunidad ->
         val responsable = oportunidad.responsableId?.let {
             usuarios[it] ?: "Responsable #$it"

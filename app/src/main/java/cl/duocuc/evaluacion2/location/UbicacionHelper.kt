@@ -9,7 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
 
-/** Resultado de una solicitud única de ubicación (sin seguimiento continuo). */
+/** Resultado de pedir la ubicación una vez. */
 sealed class ResultadoUbicacion {
     data class Disponible(val latitud: Double, val longitud: Double) : ResultadoUbicacion()
     data object PermisoDenegado : ResultadoUbicacion()
@@ -17,8 +17,7 @@ sealed class ResultadoUbicacion {
 }
 
 /**
- * Obtención de la ubicación del dispositivo en una sola consulta
- * usando LocationManager (sin servicios externos de Google).
+ * Pide la ubicación al sistema una vez, sin mantener un seguimiento.
  */
 object UbicacionHelper {
 
@@ -36,7 +35,7 @@ object UbicacionHelper {
         return conFina || conAproximada
     }
 
-    /** Pide la ubicación actual una vez y responde por callback en el hilo principal. */
+    /** Pide una ubicación y entrega el resultado al hilo que actualiza la pantalla. */
     @SuppressLint("MissingPermission", "DEPRECATION")
     fun obtenerUbicacionUnaVez(
         context: Context,
@@ -50,7 +49,7 @@ object UbicacionHelper {
         val locationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        // Preferir GPS si está activo; si no, red (menos precisa pero más rápida)
+        // Usa GPS si está disponible; si no, intenta con la red.
         val proveedor = when {
             locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ->
                 LocationManager.GPS_PROVIDER
@@ -64,13 +63,11 @@ object UbicacionHelper {
             return
         }
 
-        // El timeout y el listener pueden llegar casi al mismo tiempo;
-        // esta bandera garantiza que solo se responda una vez
+        // La respuesta y el tiempo límite pueden llegar juntos. Esta variable evita responder dos veces.
         var respondido = false
         val handler = Handler(Looper.getMainLooper())
 
-        // Si el proveedor tarda más de 10 segundos, se rinde para no
-        // dejar la pantalla cargando indefinidamente
+        // Si no llega una ubicación en 10 segundos, termina la espera.
         val timeout = Runnable {
             if (!respondido) {
                 respondido = true

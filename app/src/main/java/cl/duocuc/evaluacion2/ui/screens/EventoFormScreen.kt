@@ -62,6 +62,7 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
+/** Crea o edita un evento y registra sus fechas y organización. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventoFormScreen(
@@ -75,6 +76,7 @@ fun EventoFormScreen(
     val editor by viewModel.editor.collectAsState()
     val organizaciones by viewModel.organizaciones.collectAsState()
 
+    // Carga el evento para editarlo o prepara un formulario nuevo.
     LaunchedEffect(eventoId) {
         if (eventoId == null || eventoId == 0L) {
             viewModel.beginNueva()
@@ -91,6 +93,7 @@ fun EventoFormScreen(
     val opcionesOrganizacion = organizaciones.map {
         OpcionDropdown(valor = it.id.toString(), etiqueta = it.nombre)
     }
+    // El evento necesita una organización para poder guardarse.
     val errorOrganizacion = editor.errores.organizacionId
         ?: if (organizaciones.isEmpty()) "Crea primero una organización." else null
     val organizacionSeleccionada = organizaciones.firstOrNull {

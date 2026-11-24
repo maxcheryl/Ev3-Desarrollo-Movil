@@ -44,6 +44,7 @@ import cl.duocuc.evaluacion2.ui.viewmodels.CampoPublicacion
 import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.PublicacionErrores
 
+/** Prueba consultas y cambios en un servicio externo; no los guarda en la app. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicacionesExternasScreen(
@@ -85,6 +86,7 @@ fun PublicacionesExternasScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Muestra la carga, un error con opción de reintentar o la lista de publicaciones.
             when {
                 uiState.cargando -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)

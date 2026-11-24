@@ -43,6 +43,7 @@ import cl.duocuc.evaluacion2.ui.components.CampoTextoFormulario
 import cl.duocuc.evaluacion2.ui.components.OpcionDropdown
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 
+/** Crea o edita un contacto y permite elegir su organización. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactoFormScreen(
@@ -55,6 +56,7 @@ fun ContactoFormScreen(
     val editor by viewModel.editor.collectAsState()
     val organizaciones by viewModel.organizaciones.collectAsState()
 
+    // Carga un contacto existente o deja listo el formulario para uno nuevo.
     LaunchedEffect(contactoId) {
         if (contactoId == null || contactoId == 0L) {
             viewModel.beginNueva()
@@ -67,6 +69,7 @@ fun ContactoFormScreen(
     val opcionesOrganizacion = organizaciones.map {
         OpcionDropdown(valor = it.id.toString(), etiqueta = it.nombre)
     }
+    // Un contacto siempre debe quedar asociado a una organización.
     val errorOrganizacion = editor.errores.organizacionId
         ?: if (organizaciones.isEmpty()) "Crea primero una organización." else null
 

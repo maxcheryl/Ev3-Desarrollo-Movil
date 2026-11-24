@@ -32,7 +32,7 @@ data class CuentaDemo(
 )
 
 /**
- * ViewModel del inicio de sesión contra los usuarios locales de demostración.
+ * Maneja el inicio de sesión con las cuentas de demostración.
  */
 class LoginViewModel(
     private val repository: UsuarioRepository,

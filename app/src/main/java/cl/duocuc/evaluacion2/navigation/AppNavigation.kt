@@ -44,7 +44,7 @@ import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
-/** Rutas de la aplicación (fuente única de verdad). */
+/** Lista central de las rutas de pantalla. */
 sealed class Rutas(val route: String) {
     object PantallaInicial : Rutas("pantalla_inicial")
     object Login : Rutas("login")
@@ -85,7 +85,7 @@ sealed class Rutas(val route: String) {
 }
 
 /**
- * Host de navegación: organiza el flujo de pantallas de la aplicación.
+ * Conecta las pantallas y controla el paso de una a otra.
  */
 @Composable
 fun AppNavigation(
@@ -104,8 +104,7 @@ fun AppNavigation(
     val usuario by loginViewModel.usuario.collectAsState()
     val usuarios by gestionViewModel.usuarios.collectAsState()
 
-    // Si la sesión en memoria se perdió (por ejemplo, tras recrear el proceso)
-    // y la navegación restauró una pantalla protegida, se vuelve al login.
+    // Si se pierde la sesión pero se vuelve a una pantalla que la necesita, vuelve al inicio de sesión.
     LaunchedEffect(Unit) {
         val rutaActual = navController.currentDestination?.route
         if (usuario == null &&
@@ -122,7 +121,7 @@ fun AppNavigation(
     NavHost(
         navController = navController,
         startDestination = Rutas.PantallaInicial.route,
-        // Transiciones suaves que acompañan la navegación sin retrasarla
+        // Anima los cambios de pantalla sin agregar una pausa.
         enterTransition = {
             fadeIn(animationSpec = tween(300)) +
                 slideInHorizontally(animationSpec = tween(300)) { ancho -> ancho / 4 }
@@ -165,8 +164,7 @@ fun AppNavigation(
                 onUbicacion = { navController.navigate(Rutas.Ubicacion.route) },
                 onCerrarSesion = {
                     loginViewModel.cerrarSesion()
-                    // popUpTo(0) limpia toda la pila para que el botón atrás
-                    // no pueda volver al menú sin sesión iniciada
+                    // Borra las pantallas anteriores para que Atrás no abra el menú sin sesión.
                     navController.navigate(Rutas.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }

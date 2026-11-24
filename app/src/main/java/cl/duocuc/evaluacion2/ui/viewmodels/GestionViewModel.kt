@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Carga gestiones e historial y revisa quién puede guardar cambios. */
 class GestionViewModel(
     private val repository: GestionRepository,
     private val historialRepository: HistorialRepository,
@@ -34,6 +35,7 @@ class GestionViewModel(
 
     private val _oportunidadId = MutableStateFlow<Long?>(null)
 
+    // Cambia la lista y el historial cuando se elige otra oportunidad.
     val gestiones: StateFlow<List<GestionEntity>> = _oportunidadId
         .flatMapLatest { id ->
             if (id == null) flowOf(emptyList<GestionEntity>()) else repository.observePorOportunidad(id)
@@ -77,6 +79,7 @@ class GestionViewModel(
 
     fun seleccionarOportunidad(id: Long) {
         if (_oportunidadId.value == id) return
+        // Limpia el formulario anterior para no mezclar datos de oportunidades distintas.
         _oportunidadId.value = id
         _editor.value = GestionEditorUiState()
     }
@@ -105,6 +108,7 @@ class GestionViewModel(
 
         _editor.value = GestionEditorUiState()
 
+        // Comprueba que la oportunidad siga disponible y que el usuario pueda gestionarla.
         viewModelScope.launch {
             val oportunidad = repository.buscarOportunidad(oportunidadId)
             if (oportunidad == null) {
@@ -175,6 +179,7 @@ class GestionViewModel(
             it.copy(
                 form = it.form.copy(
                     fechaProximaAccion = valor,
+                    // Al elegir una fecha sin hora, propone las 09:00 como hora inicial.
                     horaProximaAccion = when {
                         valor == null -> it.form.horaProximaAccion
                         it.form.horaProximaAccion.isBlank() -> "09:00"
