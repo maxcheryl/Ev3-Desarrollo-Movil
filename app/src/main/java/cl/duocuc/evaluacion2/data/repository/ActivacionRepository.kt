@@ -1,48 +1,70 @@
 package cl.duocuc.evaluacion2.data.repository
 
-import androidx.room.withTransaction
 import cl.duocuc.evaluacion2.data.local.ActivacionEntity
 import cl.duocuc.evaluacion2.data.local.AppDatabase
+import cl.duocuc.evaluacion2.data.local.ActivacionDao
 import cl.duocuc.evaluacion2.data.local.EvidenciaEntity
+import cl.duocuc.evaluacion2.data.local.EvidenciaDao
+import cl.duocuc.evaluacion2.data.local.HistorialCambioDao
 import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
+import cl.duocuc.evaluacion2.data.local.OpportunityDao
 import cl.duocuc.evaluacion2.data.local.ResultadoEntity
+import cl.duocuc.evaluacion2.data.local.ResultadoDao
+import cl.duocuc.evaluacion2.data.local.UsuarioDao
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import kotlinx.coroutines.flow.Flow
 
-class ActivacionRepository(private val database: AppDatabase) {
+class ActivacionRepository(
+    private val activacionDao: ActivacionDao,
+    private val evidenciaDao: EvidenciaDao,
+    private val historialDao: HistorialCambioDao,
+    private val opportunityDao: OpportunityDao,
+    private val resultadoDao: ResultadoDao,
+    private val usuarioDao: UsuarioDao,
+    private val ejecutorTransacciones: EjecutorTransacciones
+) {
 
-    fun observeUsuarios() = database.usuarioDao().observeAll()
+    constructor(database: AppDatabase) : this(
+        activacionDao = database.activacionDao(),
+        evidenciaDao = database.evidenciaDao(),
+        historialDao = database.historialCambioDao(),
+        opportunityDao = database.opportunityDao(),
+        resultadoDao = database.resultadoDao(),
+        usuarioDao = database.usuarioDao(),
+        ejecutorTransacciones = RoomEjecutorTransacciones(database)
+    )
 
-    suspend fun obtenerOportunidad(id: Long) = database.opportunityDao().buscarPorId(id)
+    fun observeUsuarios() = usuarioDao.observeAll()
+
+    suspend fun obtenerOportunidad(id: Long) = opportunityDao.buscarPorId(id)
 
     suspend fun obtenerActivacion(oportunidadId: Long) =
-        database.activacionDao().obtenerPorOportunidad(oportunidadId)
+        activacionDao.obtenerPorOportunidad(oportunidadId)
 
     suspend fun obtenerEvidencias(activacionId: Long) =
-        database.evidenciaDao().listarPorActivacion(activacionId)
+        evidenciaDao.listarPorActivacion(activacionId)
 
     suspend fun obtenerResultado(activacionId: Long) =
-        database.resultadoDao().obtenerPorActivacion(activacionId)
+        resultadoDao.obtenerPorActivacion(activacionId)
 
     suspend fun guardarActivacion(activacion: ActivacionEntity, usuarioId: Long): Long =
-        database.withTransaction {
-            check(database.opportunityDao().buscarPorId(activacion.oportunidadId) != null) {
+        ejecutorTransacciones.ejecutar {
+            check(opportunityDao.buscarPorId(activacion.oportunidadId) != null) {
                 "La oportunidad ya no está disponible."
             }
-            check(database.usuarioDao().buscarPorId(activacion.responsableId) != null) {
+            check(usuarioDao.buscarPorId(activacion.responsableId) != null) {
                 "Selecciona un responsable disponible."
             }
 
-            val existente = database.activacionDao()
-                .obtenerPorOportunidad(activacion.oportunidadId)
+            val existente = activacionDao.obtenerPorOportunidad(activacion.oportunidadId)
             val id = if (existente == null) {
-                database.activacionDao().insert(activacion.copy(id = 0))
+                activacionDao.insert(activacion.copy(id = 0))
             } else {
-                database.activacionDao().update(activacion.copy(id = existente.id))
+                activacionDao.update(activacion.copy(id = existente.id))
                 existente.id
             }
 
-            database.historialCambioDao().insert(
+            historialDao.insert(
                 HistorialCambioEntity(
                     oportunidadId = activacion.oportunidadId,
                     usuarioId = usuarioId,
@@ -58,11 +80,11 @@ class ActivacionRepository(private val database: AppDatabase) {
         }
 
     suspend fun agregarEvidencia(evidencia: EvidenciaEntity, usuarioId: Long): Long =
-        database.withTransaction {
-            val activacion = database.activacionDao().buscarPorId(evidencia.activacionId)
+        ejecutorTransacciones.ejecutar {
+            val activacion = activacionDao.buscarPorId(evidencia.activacionId)
                 ?: error("No se encontró la activación asociada.")
-            val id = database.evidenciaDao().insert(evidencia)
-            database.historialCambioDao().insert(
+            val id = evidenciaDao.insert(evidencia)
+            historialDao.insert(
                 HistorialCambioEntity(
                     oportunidadId = activacion.oportunidadId,
                     usuarioId = usuarioId,
@@ -80,19 +102,19 @@ class ActivacionRepository(private val database: AppDatabase) {
         impacto: String,
         nuevoEstado: String,
         usuarioId: Long
-    ) = database.withTransaction {
+    ) = ejecutorTransacciones.ejecutar {
         require(nuevoEstado == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
             nuevoEstado == EstadoGestion.OPORTUNIDAD_DESCARTADA.name
         ) {
             "Selecciona un resultado final válido."
         }
 
-        val activacion = database.activacionDao().buscarPorId(activacionId)
+        val activacion = activacionDao.buscarPorId(activacionId)
             ?: error("No se encontró la activación asociada.")
-        val oportunidad = database.opportunityDao().buscarPorId(activacion.oportunidadId)
+        val oportunidad = opportunityDao.buscarPorId(activacion.oportunidadId)
             ?: error("La oportunidad ya no está disponible.")
         val ahora = System.currentTimeMillis()
-        val actual = database.resultadoDao().obtenerPorActivacion(activacionId)
+        val actual = resultadoDao.obtenerPorActivacion(activacionId)
         val resultadoEntity = ResultadoEntity(
             id = actual?.id ?: 0,
             activacionId = activacionId,
@@ -103,21 +125,21 @@ class ActivacionRepository(private val database: AppDatabase) {
         )
 
         if (actual == null) {
-            database.resultadoDao().insert(resultadoEntity)
+            resultadoDao.insert(resultadoEntity)
         } else {
-            database.resultadoDao().update(resultadoEntity)
+            resultadoDao.update(resultadoEntity)
         }
 
-        database.activacionDao().update(
+        activacionDao.update(
             activacion.copy(
                 participacionConfirmada =
                     nuevoEstado == EstadoGestion.PARTICIPACION_CONFIRMADA.name
             )
         )
-        database.opportunityDao().update(
+        opportunityDao.update(
             oportunidad.copy(estado = nuevoEstado, fechaActualizacion = ahora)
         )
-        database.historialCambioDao().insert(
+        historialDao.insert(
             HistorialCambioEntity(
                 oportunidadId = oportunidad.id,
                 usuarioId = usuarioId,
@@ -129,5 +151,5 @@ class ActivacionRepository(private val database: AppDatabase) {
     }
 
     fun observeResultado(activacionId: Long): Flow<ResultadoEntity?> =
-        database.resultadoDao().observePorActivacion(activacionId)
+        resultadoDao.observePorActivacion(activacionId)
 }

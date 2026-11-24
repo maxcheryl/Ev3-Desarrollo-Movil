@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -37,13 +36,9 @@ data class OportunidadEditorUiState(
  * del formulario de creación/edición.
  */
 class OportunidadViewModel(
-    application: Application,
+    private val repository: OportunidadRepository,
     private val sessionManager: SessionManager
-) : AndroidViewModel(application) {
-
-    private val repository = OportunidadRepository(
-        AppDatabase.getInstance(application)
-    )
+) : ViewModel() {
 
     val oportunidades: StateFlow<List<OpportunityEntity>> =
         combine(repository.observeAll(), sessionManager.usuario) { lista, usuario ->
@@ -337,7 +332,8 @@ class OportunidadViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(OportunidadViewModel::class.java))
-                    return OportunidadViewModel(application, sessionManager) as T
+                    val repository = OportunidadRepository(AppDatabase.getInstance(application))
+                    return OportunidadViewModel(repository, sessionManager) as T
                 }
             }
     }

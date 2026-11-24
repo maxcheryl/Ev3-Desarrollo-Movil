@@ -15,6 +15,7 @@ import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
@@ -57,6 +58,10 @@ class MainActivity : ComponentActivity() {
         EventoViewModel.factory(application)
     }
 
+    private val postViewModel: PostViewModel by viewModels {
+        PostViewModel.factory()
+    }
+
     private val ubicacionViewModel: UbicacionViewModel by viewModels {
         UbicacionViewModel.factory(application)
     }
@@ -74,6 +79,7 @@ class MainActivity : ComponentActivity() {
                     organizacionViewModel = organizacionViewModel,
                     contactoViewModel = contactoViewModel,
                     eventoViewModel = eventoViewModel,
+                    postViewModel = postViewModel,
                     qrViewModel = qrViewModel,
                     ubicacionViewModel = ubicacionViewModel
                 )

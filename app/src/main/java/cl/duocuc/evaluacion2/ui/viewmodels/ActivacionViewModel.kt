@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -43,11 +42,9 @@ data class ActivacionUiState(
 )
 
 class ActivacionViewModel(
-    application: Application,
+    private val repository: ActivacionRepository,
     private val sessionManager: SessionManager
-) : AndroidViewModel(application) {
-
-    private val repository = ActivacionRepository(AppDatabase.getInstance(application))
+) : ViewModel() {
     private val _uiState = MutableStateFlow(ActivacionUiState())
     val uiState: StateFlow<ActivacionUiState> = _uiState.asStateFlow()
 
@@ -130,9 +127,7 @@ class ActivacionViewModel(
         val activacionId = state.activacionId
         val usuarioId = sessionManager.actual?.id
         if (activacionId == null || usuarioId == null) {
-            cambiar {
-                it.copy(mensajeError = "Guarda la coordinación antes de adjuntar evidencias.")
-            }
+            informarError("Guarda la coordinación antes de adjuntar evidencias.")
             return
         }
         viewModelScope.launch {
@@ -170,15 +165,15 @@ class ActivacionViewModel(
         val responsableId = state.responsableId
         val costo = state.costo.trim().takeIf(String::isNotEmpty)?.replace(',', '.')?.toDoubleOrNull()
         if (usuarioId == null) {
-            cambiar { it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.") }
+            informarError("La sesión no está activa. Inicia sesión nuevamente.")
             return
         }
         if (responsableId == null || state.usuarios.none { it.id == responsableId }) {
-            cambiar { it.copy(mensajeError = "Selecciona un responsable disponible.") }
+            informarError("Selecciona un responsable disponible.")
             return
         }
         if (state.costo.isNotBlank() && (costo == null || !costo.isFinite() || costo < 0)) {
-            cambiar { it.copy(mensajeError = "El costo debe ser un número igual o mayor que cero.") }
+            informarError("El costo debe ser un número igual o mayor que cero.")
             return
         }
         if (state.guardando) return
@@ -225,17 +220,17 @@ class ActivacionViewModel(
         val activacionId = state.activacionId
         val usuarioId = sessionManager.actual?.id
         if (activacionId == null) {
-            cambiar { it.copy(mensajeError = "Guarda la coordinación antes de registrar el resultado.") }
+            informarError("Guarda la coordinación antes de registrar el resultado.")
             return
         }
         if (usuarioId == null) {
-            cambiar { it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.") }
+            informarError("La sesión no está activa. Inicia sesión nuevamente.")
             return
         }
         if (state.resultadoFinal != EstadoGestion.PARTICIPACION_CONFIRMADA.name &&
             state.resultadoFinal != EstadoGestion.OPORTUNIDAD_DESCARTADA.name
         ) {
-            cambiar { it.copy(mensajeError = "Selecciona el resultado final de la oportunidad.") }
+            informarError("Selecciona el resultado final de la oportunidad.")
             return
         }
         if (state.guardando) return
@@ -283,6 +278,10 @@ class ActivacionViewModel(
         _uiState.update { transform(it).copy(mensajeError = null, mensajeExito = null) }
     }
 
+    private fun informarError(mensaje: String) {
+        _uiState.update { it.copy(mensajeError = mensaje, mensajeExito = null) }
+    }
+
     companion object {
         fun factory(
             application: Application,
@@ -292,7 +291,8 @@ class ActivacionViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(ActivacionViewModel::class.java))
-                    return ActivacionViewModel(application, sessionManager) as T
+                    val repository = ActivacionRepository(AppDatabase.getInstance(application))
+                    return ActivacionViewModel(repository, sessionManager) as T
                 }
             }
     }

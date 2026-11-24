@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -28,11 +27,10 @@ data class ContactoEditorUiState(
     val mensajeError: String? = null
 )
 
-class ContactoViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val repository = ContactoRepository(database.contactoDao())
-    private val organizacionRepository = OrganizacionRepository(database.organizacionDao())
+class ContactoViewModel(
+    private val repository: ContactoRepository,
+    private val organizacionRepository: OrganizacionRepository
+) : ViewModel() {
 
     val contactos: StateFlow<List<ContactoEntity>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -190,7 +188,12 @@ class ContactoViewModel(application: Application) : AndroidViewModel(application
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(ContactoViewModel::class.java))
-                    return ContactoViewModel(application) as T
+                    val database = AppDatabase.getInstance(application)
+                    return ContactoViewModel(
+                        repository = ContactoRepository(database.contactoDao()),
+                        organizacionRepository =
+                            OrganizacionRepository(database.organizacionDao())
+                    ) as T
                 }
             }
     }

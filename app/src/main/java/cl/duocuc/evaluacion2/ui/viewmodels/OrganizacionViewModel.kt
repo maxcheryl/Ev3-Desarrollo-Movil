@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -26,11 +25,9 @@ data class OrganizacionEditorUiState(
     val mensajeError: String? = null
 )
 
-class OrganizacionViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = OrganizacionRepository(
-        AppDatabase.getInstance(application).organizacionDao()
-    )
+class OrganizacionViewModel(
+    private val repository: OrganizacionRepository
+) : ViewModel() {
 
     val organizaciones: StateFlow<List<OrganizacionEntity>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -161,7 +158,10 @@ class OrganizacionViewModel(application: Application) : AndroidViewModel(applica
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(OrganizacionViewModel::class.java))
-                    return OrganizacionViewModel(application) as T
+                    val repository = OrganizacionRepository(
+                        AppDatabase.getInstance(application).organizacionDao()
+                    )
+                    return OrganizacionViewModel(repository) as T
                 }
             }
     }

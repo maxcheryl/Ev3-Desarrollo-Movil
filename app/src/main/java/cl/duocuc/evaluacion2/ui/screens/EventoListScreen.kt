@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,6 +45,7 @@ fun EventoListScreen(
     onVolver: () -> Unit,
     onNuevo: () -> Unit,
     onSeleccionar: (Long) -> Unit,
+    onConsultarApi: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val eventos by viewModel.eventos.collectAsState()
@@ -68,6 +70,11 @@ fun EventoListScreen(
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onConsultarApi) {
+                        Text("API de prueba")
                     }
                 }
             )

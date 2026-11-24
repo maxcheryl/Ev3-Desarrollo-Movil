@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -27,14 +26,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GestionViewModel(
-    application: Application,
+    private val repository: GestionRepository,
+    private val historialRepository: HistorialRepository,
+    private val usuarioRepository: UsuarioRepository,
     private val sessionManager: SessionManager
-) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val repository = GestionRepository(database)
-    private val historialRepository = HistorialRepository(database)
-    private val usuarioRepository = UsuarioRepository(database.usuarioDao())
+) : ViewModel() {
 
     private val _oportunidadId = MutableStateFlow<Long?>(null)
 
@@ -258,7 +254,13 @@ class GestionViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(GestionViewModel::class.java))
-                    return GestionViewModel(application, sessionManager) as T
+                    val database = AppDatabase.getInstance(application)
+                    return GestionViewModel(
+                        repository = GestionRepository(database),
+                        historialRepository = HistorialRepository(database),
+                        usuarioRepository = UsuarioRepository(database.usuarioDao()),
+                        sessionManager = sessionManager
+                    ) as T
                 }
             }
     }

@@ -29,6 +29,7 @@ import cl.duocuc.evaluacion2.ui.screens.OportunidadListScreen
 import cl.duocuc.evaluacion2.ui.screens.OrganizacionFormScreen
 import cl.duocuc.evaluacion2.ui.screens.OrganizacionListScreen
 import cl.duocuc.evaluacion2.ui.screens.PantallaInicialScreen
+import cl.duocuc.evaluacion2.ui.screens.PublicacionesExternasScreen
 import cl.duocuc.evaluacion2.ui.screens.RegistrarGestionScreen
 import cl.duocuc.evaluacion2.ui.screens.UbicacionScreen
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
@@ -38,6 +39,7 @@ import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.LoginViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.UbicacionViewModel
 
@@ -57,6 +59,7 @@ sealed class Rutas(val route: String) {
         fun conId(id: Long) = "formulario_contacto?id=$id"
     }
     object Eventos : Rutas("eventos")
+    object PublicacionesExternas : Rutas("publicaciones_externas")
     object FormularioEvento : Rutas("formulario_evento?id={id}") {
         fun conId(id: Long) = "formulario_evento?id=$id"
     }
@@ -88,6 +91,7 @@ fun AppNavigation(
     organizacionViewModel: OrganizacionViewModel,
     contactoViewModel: ContactoViewModel,
     eventoViewModel: EventoViewModel,
+    postViewModel: PostViewModel,
     qrViewModel: QrViewModel,
     ubicacionViewModel: UbicacionViewModel
 ) {
@@ -240,7 +244,17 @@ fun AppNavigation(
                 },
                 onSeleccionar = { id ->
                     navController.navigate(Rutas.FormularioEvento.conId(id))
+                },
+                onConsultarApi = {
+                    navController.navigate(Rutas.PublicacionesExternas.route)
                 }
+            )
+        }
+
+        composable(Rutas.PublicacionesExternas.route) {
+            PublicacionesExternasScreen(
+                viewModel = postViewModel,
+                onVolver = { navController.popBackStack() }
             )
         }
 

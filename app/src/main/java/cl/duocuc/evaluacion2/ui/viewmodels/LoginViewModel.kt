@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -36,13 +35,9 @@ data class CuentaDemo(
  * ViewModel del inicio de sesión contra los usuarios locales de demostración.
  */
 class LoginViewModel(
-    application: Application,
+    private val repository: UsuarioRepository,
     private val sessionManager: SessionManager
-) : AndroidViewModel(application) {
-
-    private val repository = UsuarioRepository(
-        AppDatabase.getInstance(application).usuarioDao()
-    )
+) : ViewModel() {
 
     private val _estado = MutableStateFlow(LoginUiState())
     val estado: StateFlow<LoginUiState> = _estado
@@ -147,7 +142,10 @@ class LoginViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass.isAssignableFrom(LoginViewModel::class.java))
-                return LoginViewModel(application, sessionManager) as T
+                val repository = UsuarioRepository(
+                    AppDatabase.getInstance(application).usuarioDao()
+                )
+                return LoginViewModel(repository, sessionManager) as T
             }
         }
     }

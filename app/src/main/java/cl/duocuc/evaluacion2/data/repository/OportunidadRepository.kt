@@ -1,11 +1,14 @@
 package cl.duocuc.evaluacion2.data.repository
 
-import androidx.room.withTransaction
 import cl.duocuc.evaluacion2.data.historial.HistorialDescripciones
 import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.DatabaseSeed
+import cl.duocuc.evaluacion2.data.local.GestionDao
 import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
+import cl.duocuc.evaluacion2.data.local.HistorialCambioDao
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
+import cl.duocuc.evaluacion2.data.local.OpportunityDao
+import cl.duocuc.evaluacion2.data.local.UsuarioDao
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
@@ -16,11 +19,21 @@ import kotlinx.coroutines.flow.Flow
  * Repositorio de oportunidades: única puerta de acceso a la persistencia
  * local (Room). La UI y los ViewModels no conocen la base de datos.
  */
-class OportunidadRepository(private val database: AppDatabase) {
+class OportunidadRepository(
+    private val dao: OpportunityDao,
+    private val historialDao: HistorialCambioDao,
+    private val usuarioDao: UsuarioDao,
+    private val gestionDao: GestionDao,
+    private val ejecutorTransacciones: EjecutorTransacciones
+) {
 
-    private val dao = database.opportunityDao()
-    private val historialDao = database.historialCambioDao()
-    private val usuarioDao = database.usuarioDao()
+    constructor(database: AppDatabase) : this(
+        dao = database.opportunityDao(),
+        historialDao = database.historialCambioDao(),
+        usuarioDao = database.usuarioDao(),
+        gestionDao = database.gestionDao(),
+        ejecutorTransacciones = RoomEjecutorTransacciones(database)
+    )
 
     fun observeAll(): Flow<List<OpportunityEntity>> = dao.observeAll()
 
@@ -31,15 +44,15 @@ class OportunidadRepository(private val database: AppDatabase) {
     suspend fun asignarResponsablesPendientes(responsableId: Long): Int =
         dao.assignNullResponsible(responsableId)
 
-    suspend fun eliminar(id: Long): Int = database.withTransaction {
-        database.gestionDao().deleteByOportunidad(id)
-        database.historialCambioDao().deleteByOportunidad(id)
+    suspend fun eliminar(id: Long): Int = ejecutorTransacciones.ejecutar {
+        gestionDao.deleteByOportunidad(id)
+        historialDao.deleteByOportunidad(id)
         dao.deleteById(id)
     }
 
     /** Inserta una oportunidad nueva o actualiza una existente. Devuelve el id. */
     suspend fun guardar(oportunidad: OpportunityEntity, usuarioId: Long): Long =
-        database.withTransaction {
+        ejecutorTransacciones.ejecutar {
             if (oportunidad.id == 0L) {
                 val id = dao.insert(oportunidad)
                 val cambio = HistorialDescripciones.creacion(
@@ -67,7 +80,12 @@ class OportunidadRepository(private val database: AppDatabase) {
                 )
                 val ahora = System.currentTimeMillis()
                 // Al editar se conserva la fecha de creación original y solo se mueve la de actualización
-                dao.update(oportunidad.copy(fechaActualizacion = ahora))
+                dao.update(
+                    oportunidad.copy(
+                        fechaCreacion = anterior.fechaCreacion,
+                        fechaActualizacion = ahora
+                    )
+                )
                 cambios.forEach { cambio ->
                     historialDao.insert(
                         HistorialCambioEntity(
@@ -85,7 +103,7 @@ class OportunidadRepository(private val database: AppDatabase) {
 
     /** Completa el historial de creación de oportunidades antiguas o de ejemplo. */
     suspend fun completarHistorialCreacion(usuarioId: Long) {
-        database.withTransaction {
+        ejecutorTransacciones.ejecutar {
             dao.listarSinHistorial().forEach { oportunidad ->
                 val cambio = HistorialDescripciones.creacion(
                     oportunidad = oportunidad,

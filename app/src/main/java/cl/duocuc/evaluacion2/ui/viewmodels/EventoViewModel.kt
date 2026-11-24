@@ -1,7 +1,6 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -28,11 +27,10 @@ data class EventoEditorUiState(
     val mensajeError: String? = null
 )
 
-class EventoViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val repository = EventoRepository(database.eventoDao())
-    private val organizacionRepository = OrganizacionRepository(database.organizacionDao())
+class EventoViewModel(
+    private val repository: EventoRepository,
+    private val organizacionRepository: OrganizacionRepository
+) : ViewModel() {
 
     val eventos: StateFlow<List<EventoEntity>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -163,7 +161,12 @@ class EventoViewModel(application: Application) : AndroidViewModel(application) 
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(EventoViewModel::class.java))
-                    return EventoViewModel(application) as T
+                    val database = AppDatabase.getInstance(application)
+                    return EventoViewModel(
+                        repository = EventoRepository(database.eventoDao()),
+                        organizacionRepository =
+                            OrganizacionRepository(database.organizacionDao())
+                    ) as T
                 }
             }
     }
