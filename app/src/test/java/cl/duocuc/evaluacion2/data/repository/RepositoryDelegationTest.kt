@@ -1,5 +1,8 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.data.local.ContactoDao
 import cl.duocuc.evaluacion2.data.local.ContactoEntity
 import cl.duocuc.evaluacion2.data.local.EventoDao
@@ -13,8 +16,6 @@ import cl.duocuc.evaluacion2.data.local.UsuarioEntity
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -22,9 +23,13 @@ import io.mockk.mockk
 import io.mockk.just
 import io.mockk.Runs
 
-class RepositoryDelegationTest {
+class RepositoryDelegationTest : StringSpec({
+    "Repositorios de catalogo insertan y actualizan segun id" { RepositoryDelegationTestCases().repositoriosDeCatalogoInsertanYActualizanSegunId() }
+    "Repositorios delegan conteo y flujos" { RepositoryDelegationTestCases().repositoriosDeleganConteoYFlujos() }
+})
 
-    @Test
+private class RepositoryDelegationTestCases {
+
     fun repositoriosDeCatalogoInsertanYActualizanSegunId() = runBlocking {
         val orgDao = mockk<OrganizacionDao>()
         val contactoDao = mockk<ContactoDao>()
@@ -42,23 +47,22 @@ class RepositoryDelegationTest {
         coEvery { eventoDao.insert(evento) } returns 13L
         coEvery { eventoDao.update(any()) } just Runs
 
-        assertEquals(11L, OrganizacionRepository(orgDao).guardar(org))
-        assertEquals(12L, ContactoRepository(contactoDao).guardar(contacto))
-        assertEquals(13L, EventoRepository(eventoDao).guardar(evento))
+        (OrganizacionRepository(orgDao).guardar(org)) shouldBe (11L)
+        (ContactoRepository(contactoDao).guardar(contacto)) shouldBe (12L)
+        (EventoRepository(eventoDao).guardar(evento)) shouldBe (13L)
 
         val orgEditado = org.copy(id = 5)
         val contactoEditado = contacto.copy(id = 6)
         val eventoEditado = evento.copy(id = 7)
-        assertEquals(5L, OrganizacionRepository(orgDao).guardar(orgEditado))
-        assertEquals(6L, ContactoRepository(contactoDao).guardar(contactoEditado))
-        assertEquals(7L, EventoRepository(eventoDao).guardar(eventoEditado))
+        (OrganizacionRepository(orgDao).guardar(orgEditado)) shouldBe (5L)
+        (ContactoRepository(contactoDao).guardar(contactoEditado)) shouldBe (6L)
+        (EventoRepository(eventoDao).guardar(eventoEditado)) shouldBe (7L)
 
         coVerify(exactly = 1) { orgDao.update(orgEditado) }
         coVerify(exactly = 1) { contactoDao.update(contactoEditado) }
         coVerify(exactly = 1) { eventoDao.update(eventoEditado) }
     }
 
-    @Test
     fun repositoriosDeleganConteoYFlujos() = runBlocking {
         val orgDao = mockk<OrganizacionDao>()
         val contactoDao = mockk<ContactoDao>()
@@ -82,13 +86,13 @@ class RepositoryDelegationTest {
         )
         every { historialDao.observePorOportunidad(8) } returns flowOf(listOf(cambio))
 
-        assertEquals(2, OrganizacionRepository(orgDao).contar())
-        assertEquals(3, ContactoRepository(contactoDao).contar())
-        assertEquals(4, EventoRepository(eventoDao).contar())
-        assertEquals(emptyList<OrganizacionEntity>(), OrganizacionRepository(orgDao).observeAll().single())
-        assertEquals(emptyList<ContactoEntity>(), ContactoRepository(contactoDao).observeAll().single())
-        assertEquals(emptyList<EventoEntity>(), EventoRepository(eventoDao).observeAll().single())
-        assertEquals(listOf(cambio), HistorialRepository(historialDao).observePorOportunidad(8).single())
-        assertEquals(1, UsuarioRepository(usuarioDao).observeAll().single().size)
+        (OrganizacionRepository(orgDao).contar()) shouldBe (2)
+        (ContactoRepository(contactoDao).contar()) shouldBe (3)
+        (EventoRepository(eventoDao).contar()) shouldBe (4)
+        (OrganizacionRepository(orgDao).observeAll().single()) shouldBe (emptyList<OrganizacionEntity>())
+        (ContactoRepository(contactoDao).observeAll().single()) shouldBe (emptyList<ContactoEntity>())
+        (EventoRepository(eventoDao).observeAll().single()) shouldBe (emptyList<EventoEntity>())
+        (HistorialRepository(historialDao).observePorOportunidad(8).single()) shouldBe (listOf(cambio))
+        (UsuarioRepository(usuarioDao).observeAll().single().size) shouldBe (1)
     }
 }

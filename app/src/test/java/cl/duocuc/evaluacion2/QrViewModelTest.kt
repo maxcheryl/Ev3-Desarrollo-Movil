@@ -1,42 +1,44 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.ui.viewmodels.QrViewModel
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class QrViewModelTest {
+class QrViewModelTest : StringSpec({
+    "Acepta codigo max y rechaza codigo externo" { QrViewModelTestCases().aceptaCodigoMaxYrechazaCodigoExterno() }
+    "Informa permiso denegado y sin coincidencia y permite reiniciar" { QrViewModelTestCases().informaPermisoDenegadoYSinCoincidenciaYPermiteReiniciar() }
+})
 
-    @Test
+private class QrViewModelTestCases {
+
     fun aceptaCodigoMaxYrechazaCodigoExterno() {
         val viewModel = QrViewModel()
 
         viewModel.onQrDetectado("MAX:OP-002")
-        assertTrue(viewModel.uiState.value.esValido)
-        assertFalse(viewModel.uiState.value.escaneando)
-        assertEquals("MAX:OP-002", viewModel.uiState.value.contenido)
+        (viewModel.uiState.value.esValido) shouldBe true
+        (viewModel.uiState.value.escaneando) shouldBe false
+        (viewModel.uiState.value.contenido) shouldBe ("MAX:OP-002")
 
         viewModel.onQrDetectado("https://example.com/OP-002")
-        assertFalse(viewModel.uiState.value.esValido)
-        assertTrue(viewModel.uiState.value.mensaje.orEmpty().isNotBlank())
+        (viewModel.uiState.value.esValido) shouldBe false
+        (viewModel.uiState.value.mensaje.orEmpty().isNotBlank()) shouldBe true
     }
 
-    @Test
     fun informaPermisoDenegadoYSinCoincidenciaYPermiteReiniciar() {
         val viewModel = QrViewModel()
         viewModel.onPermisoDenegado()
-        assertFalse(viewModel.uiState.value.escaneando)
-        assertTrue(viewModel.uiState.value.mensaje.orEmpty().contains("Permiso"))
+        (viewModel.uiState.value.escaneando) shouldBe false
+        (viewModel.uiState.value.mensaje.orEmpty().contains("Permiso")) shouldBe true
 
         viewModel.onQrDetectado("MAX:OP-404")
         viewModel.onSinCoincidencia()
-        assertTrue(viewModel.uiState.value.esValido)
-        assertTrue(viewModel.uiState.value.mensaje.orEmpty().contains("no corresponde"))
+        (viewModel.uiState.value.esValido) shouldBe true
+        (viewModel.uiState.value.mensaje.orEmpty().contains("no corresponde")) shouldBe true
 
         viewModel.reiniciarEscaneo()
-        assertTrue(viewModel.uiState.value.escaneando)
-        assertEquals(null, viewModel.uiState.value.contenido)
-        assertEquals(null, viewModel.uiState.value.mensaje)
+        (viewModel.uiState.value.escaneando) shouldBe true
+        (viewModel.uiState.value.contenido) shouldBe (null)
+        (viewModel.uiState.value.mensaje) shouldBe (null)
     }
 }

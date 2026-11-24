@@ -1,15 +1,22 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionFormState
 import cl.duocuc.evaluacion2.validation.GestionValidator
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class GestionValidatorTest {
+class GestionValidatorTest : StringSpec({
+    "Formulario valido no tiene errores" { GestionValidatorTestCases().formularioValidoNoTieneErrores() }
+    "Campos obligatorios vacios reportan errores" { GestionValidatorTestCases().camposObligatoriosVaciosReportanErrores() }
+    "Tipo y estado invalidos son rechazados" { GestionValidatorTestCases().tipoYEstadoInvalidosSonRechazados() }
+    "Proxima accion y fecha son opcionales" { GestionValidatorTestCases().proximaAccionYFechaSonOpcionales() }
+})
+
+private class GestionValidatorTestCases {
 
     private fun formularioValido() = GestionFormState(
         tipo = TipoGestion.CONTACTO.name,
@@ -17,23 +24,20 @@ class GestionValidatorTest {
         descripcion = "Llamada con la organización para coordinar la propuesta."
     )
 
-    @Test
     fun formularioValidoNoTieneErrores() {
         val errores = GestionValidator.validar(formularioValido())
-        assertFalse(errores.hayErrores)
+        (errores.hayErrores) shouldBe false
     }
 
-    @Test
     fun camposObligatoriosVaciosReportanErrores() {
         val errores = GestionValidator.validar(GestionFormState())
 
-        assertNotNull(errores.tipo)
-        assertNotNull(errores.estado)
-        assertNotNull(errores.descripcion)
-        assertTrue(errores.hayErrores)
+        (errores.tipo) shouldNotBe null
+        (errores.estado) shouldNotBe null
+        (errores.descripcion) shouldNotBe null
+        (errores.hayErrores) shouldBe true
     }
 
-    @Test
     fun tipoYEstadoInvalidosSonRechazados() {
         val errores = GestionValidator.validar(
             formularioValido().copy(
@@ -42,12 +46,11 @@ class GestionValidatorTest {
             )
         )
 
-        assertNotNull(errores.tipo)
-        assertNotNull(errores.estado)
-        assertTrue(errores.hayErrores)
+        (errores.tipo) shouldNotBe null
+        (errores.estado) shouldNotBe null
+        (errores.hayErrores) shouldBe true
     }
 
-    @Test
     fun proximaAccionYFechaSonOpcionales() {
         val errores = GestionValidator.validar(
             formularioValido().copy(
@@ -57,6 +60,6 @@ class GestionValidatorTest {
             )
         )
 
-        assertFalse(errores.hayErrores)
+        (errores.hayErrores) shouldBe false
     }
 }

@@ -1,5 +1,8 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.data.local.ActivacionDao
 import cl.duocuc.evaluacion2.data.local.ActivacionEntity
 import cl.duocuc.evaluacion2.data.local.EvidenciaDao
@@ -20,12 +23,16 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class ActivacionRepositoryTest {
+class ActivacionRepositoryTest : StringSpec({
+    "Guarda nueva activacion y actualiza una existente sin duplicar" { ActivacionRepositoryTestCases().guardaNuevaActivacionYActualizaUnaExistenteSinDuplicar() }
+    "Guardar activacion rechaza oportunidad oresponsable inexistente" { ActivacionRepositoryTestCases().guardarActivacionRechazaOportunidadOResponsableInexistente() }
+    "Adjuntar evidencia registra historial y falla sin activacion" { ActivacionRepositoryTestCases().adjuntarEvidenciaRegistraHistorialYFallaSinActivacion() }
+    "Resultado valida referencias y actualiza todas las entidades" { ActivacionRepositoryTestCases().resultadoValidaReferenciasYActualizaTodasLasEntidades() }
+    "Delega consultas y flujos" { ActivacionRepositoryTestCases().delegaConsultasYFlujos() }
+})
+
+private class ActivacionRepositoryTestCases {
 
     private val activacionDao = mockk<ActivacionDao>()
     private val evidenciaDao = mockk<EvidenciaDao>()
@@ -43,7 +50,6 @@ class ActivacionRepositoryTest {
         ejecutorTransacciones = ImmediateTransactionExecutor
     )
 
-    @Test
     fun guardaNuevaActivacionYActualizaUnaExistenteSinDuplicar() = runBlocking {
         val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9)
         coEvery { opportunityDao.buscarPorId(4) } returns oportunidad()
@@ -56,33 +62,25 @@ class ActivacionRepositoryTest {
         coEvery { activacionDao.update(any()) } just Runs
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(31L, repository.guardarActivacion(activacion, usuarioId = 9))
-        assertEquals(12L, repository.guardarActivacion(activacion, usuarioId = 9))
+        (repository.guardarActivacion(activacion, usuarioId = 9)) shouldBe (31L)
+        (repository.guardarActivacion(activacion, usuarioId = 9)) shouldBe (12L)
 
         coVerify { activacionDao.insert(match { it.id == 0L && it.oportunidadId == 4L }) }
         coVerify { activacionDao.update(match { it.id == 12L }) }
         coVerify(exactly = 2) { historialDao.insert(match { it.tipoAccion == "ACTIVACION" }) }
     }
 
-    @Test
     fun guardarActivacionRechazaOportunidadOResponsableInexistente() = runBlocking {
         val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9)
         coEvery { opportunityDao.buscarPorId(4) } returns null
-        assertEquals(
-            "La oportunidad ya no está disponible.",
-            runCatching { repository.guardarActivacion(activacion, 9) }.exceptionOrNull()?.message
-        )
+        (runCatching { repository.guardarActivacion(activacion, 9) }.exceptionOrNull()?.message) shouldBe ("La oportunidad ya no está disponible.")
 
         coEvery { opportunityDao.buscarPorId(4) } returns oportunidad()
         coEvery { usuarioDao.buscarPorId(9) } returns null
-        assertEquals(
-            "Selecciona un responsable disponible.",
-            runCatching { repository.guardarActivacion(activacion, 9) }.exceptionOrNull()?.message
-        )
+        (runCatching { repository.guardarActivacion(activacion, 9) }.exceptionOrNull()?.message) shouldBe ("Selecciona un responsable disponible.")
         coVerify(exactly = 0) { activacionDao.insert(any()) }
     }
 
-    @Test
     fun adjuntarEvidenciaRegistraHistorialYFallaSinActivacion() = runBlocking {
         val evidencia = EvidenciaEntity(
             activacionId = 5,
@@ -97,11 +95,8 @@ class ActivacionRepositoryTest {
         coEvery { evidenciaDao.insert(evidencia) } returns 22
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(
-            "No se encontró la activación asociada.",
-            runCatching { repository.agregarEvidencia(evidencia, 9) }.exceptionOrNull()?.message
-        )
-        assertEquals(22L, repository.agregarEvidencia(evidencia, 9))
+        (runCatching { repository.agregarEvidencia(evidencia, 9) }.exceptionOrNull()?.message) shouldBe ("No se encontró la activación asociada.")
+        (repository.agregarEvidencia(evidencia, 9)) shouldBe (22L)
         coVerify {
             historialDao.insert(match {
                 it.oportunidadId == 4L && it.descripcion == "Evidencia adjunta: stand.jpg."
@@ -109,7 +104,6 @@ class ActivacionRepositoryTest {
         }
     }
 
-    @Test
     fun resultadoValidaReferenciasYActualizaTodasLasEntidades() = runBlocking {
         val activation = ActivacionEntity(id = 5, oportunidadId = 4, responsableId = 9)
         val opportunity = oportunidad()
@@ -129,24 +123,15 @@ class ActivacionRepositoryTest {
         coEvery { opportunityDao.update(any()) } just Runs
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(
-            "Selecciona un resultado final válido.",
-            runCatching {
+        (runCatching {
                 repository.guardarResultado(5, "OTRO", "", "", "OTRO", 9)
-            }.exceptionOrNull()?.message
-        )
-        assertEquals(
-            "No se encontró la activación asociada.",
-            runCatching {
+            }.exceptionOrNull()?.message) shouldBe ("Selecciona un resultado final válido.")
+        (runCatching {
                 repository.guardarResultado(5, "RESULTADO", "", "", "PARTICIPACION_CONFIRMADA", 9)
-            }.exceptionOrNull()?.message
-        )
-        assertEquals(
-            "La oportunidad ya no está disponible.",
-            runCatching {
+            }.exceptionOrNull()?.message) shouldBe ("No se encontró la activación asociada.")
+        (runCatching {
                 repository.guardarResultado(5, "RESULTADO", "", "", "PARTICIPACION_CONFIRMADA", 9)
-            }.exceptionOrNull()?.message
-        )
+            }.exceptionOrNull()?.message) shouldBe ("La oportunidad ya no está disponible.")
 
         repository.guardarResultado(
             activacionId = 5,
@@ -170,7 +155,6 @@ class ActivacionRepositoryTest {
         coVerify { opportunityDao.update(match { it.estado == "OPORTUNIDAD_DESCARTADA" }) }
     }
 
-    @Test
     fun delegaConsultasYFlujos() = runBlocking {
         val user = usuario()
         val opportunity = oportunidad()
@@ -183,13 +167,13 @@ class ActivacionRepositoryTest {
         coEvery { evidenciaDao.listarPorActivacion(5) } returns emptyList()
         coEvery { resultadoDao.obtenerPorActivacion(5) } returns null
 
-        assertEquals(listOf(user), repository.observeUsuarios().single())
-        assertEquals(opportunity, repository.obtenerOportunidad(4))
-        assertEquals(null, repository.obtenerActivacion(4))
-        assertEquals(emptyList<EvidenciaEntity>(), repository.obtenerEvidencias(5))
-        assertEquals(null, repository.obtenerResultado(5))
-        assertEquals(null, repository.observeResultado(5).single())
-        assertTrue(repository.observeUsuarios().single().isNotEmpty())
+        (repository.observeUsuarios().single()) shouldBe (listOf(user))
+        (repository.obtenerOportunidad(4)) shouldBe (opportunity)
+        (repository.obtenerActivacion(4)) shouldBe (null)
+        (repository.obtenerEvidencias(5)) shouldBe (emptyList<EvidenciaEntity>())
+        (repository.obtenerResultado(5)) shouldBe (null)
+        (repository.observeResultado(5).single()) shouldBe (null)
+        (repository.observeUsuarios().single().isNotEmpty()) shouldBe true
     }
 
     private fun oportunidad() = OpportunityEntity(

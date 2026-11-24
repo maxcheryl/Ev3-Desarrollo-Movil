@@ -1,5 +1,13 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+
 import cl.duocuc.evaluacion2.data.local.UsuarioEntity
 import cl.duocuc.evaluacion2.data.model.PerfilUsuario
 import cl.duocuc.evaluacion2.data.repository.UsuarioRepository
@@ -11,34 +19,37 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LoginViewModelTest {
+class LoginViewModelTest : StringSpec({
+    val dispatcher = StandardTestDispatcher()
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    beforeSpec { Dispatchers.setMain(dispatcher) }
+    afterSpec { Dispatchers.resetMain() }
 
-    @Test
+    "Campos vacios impiden intentar autenticar" { LoginViewModelTestCases().camposVaciosImpidenIntentarAutenticar() }
+    "Credenciales incorrectas muestran error" { LoginViewModelTestCases().credencialesIncorrectasMuestranError() }
+    "Excepcion del repositorio se informa" { LoginViewModelTestCases().excepcionDelRepositorioSeInforma() }
+    "Ingreso exitoso inicia sesion y restablece formulario" { LoginViewModelTestCases().ingresoExitosoIniciaSesionYRestableceFormulario() }
+    "Cerrar sesion limpia sesion y formulario" { LoginViewModelTestCases().cerrarSesionLimpiaSesionYFormulario() }
+})
+
+@OptIn(ExperimentalCoroutinesApi::class)
+private class LoginViewModelTestCases {
+
+
     fun camposVaciosImpidenIntentarAutenticar() = runTest {
         val repository = mockk<UsuarioRepository>()
         val viewModel = LoginViewModel(repository, SessionManager())
 
         viewModel.ingresar {}
 
-        assertNotNull(viewModel.estado.value.correoError)
-        assertNotNull(viewModel.estado.value.claveError)
-        assertNull(viewModel.estado.value.mensajeError)
+        (viewModel.estado.value.correoError) shouldNotBe null
+        (viewModel.estado.value.claveError) shouldNotBe null
+        (viewModel.estado.value.mensajeError) shouldBe null
         coVerify(exactly = 0) { repository.autenticar(any(), any()) }
     }
 
-    @Test
     fun credencialesIncorrectasMuestranError() = runTest {
         val repository = mockk<UsuarioRepository>()
         coEvery { repository.autenticar("ana@example.com", "bad") } returns null
@@ -49,11 +60,10 @@ class LoginViewModelTest {
         viewModel.ingresar {}
         advanceUntilIdle()
 
-        assertEquals("Correo o contraseña incorrectos.", viewModel.estado.value.mensajeError)
-        assertFalse(viewModel.estado.value.cargando)
+        (viewModel.estado.value.mensajeError) shouldBe ("Correo o contraseña incorrectos.")
+        (viewModel.estado.value.cargando) shouldBe false
     }
 
-    @Test
     fun excepcionDelRepositorioSeInforma() = runTest {
         val repository = mockk<UsuarioRepository>()
         coEvery { repository.autenticar(any(), any()) } throws IllegalStateException("DB falla")
@@ -64,11 +74,10 @@ class LoginViewModelTest {
         viewModel.ingresar {}
         advanceUntilIdle()
 
-        assertEquals("No se pudo iniciar sesión: DB falla", viewModel.estado.value.mensajeError)
-        assertFalse(viewModel.estado.value.cargando)
+        (viewModel.estado.value.mensajeError) shouldBe ("No se pudo iniciar sesión: DB falla")
+        (viewModel.estado.value.cargando) shouldBe false
     }
 
-    @Test
     fun ingresoExitosoIniciaSesionYRestableceFormulario() = runTest {
         val repository = mockk<UsuarioRepository>()
         val session = SessionManager()
@@ -88,14 +97,13 @@ class LoginViewModelTest {
         viewModel.ingresar { exitoso = true }
         advanceUntilIdle()
 
-        assertEquals(6L, session.actual?.id)
-        assertEquals(PerfilUsuario.EJECUTIVO_COMERCIAL, session.actual?.perfil)
-        assertTrue(exitoso)
-        assertEquals("", viewModel.estado.value.correo)
-        assertEquals("", viewModel.estado.value.clave)
+        (session.actual?.id) shouldBe (6L)
+        (session.actual?.perfil) shouldBe (PerfilUsuario.EJECUTIVO_COMERCIAL)
+        (exitoso) shouldBe true
+        (viewModel.estado.value.correo) shouldBe ("")
+        (viewModel.estado.value.clave) shouldBe ("")
     }
 
-    @Test
     fun cerrarSesionLimpiaSesionYFormulario() = runTest {
         val session = SessionManager()
         session.iniciar(
@@ -112,8 +120,8 @@ class LoginViewModelTest {
 
         viewModel.cerrarSesion()
 
-        assertNull(session.actual)
-        assertEquals("", viewModel.estado.value.correo)
-        assertEquals("", viewModel.estado.value.clave)
+        (session.actual) shouldBe null
+        (viewModel.estado.value.correo) shouldBe ("")
+        (viewModel.estado.value.clave) shouldBe ("")
     }
 }

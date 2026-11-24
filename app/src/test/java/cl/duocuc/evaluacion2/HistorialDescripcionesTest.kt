@@ -1,5 +1,8 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.data.historial.HistorialDescripciones
 import cl.duocuc.evaluacion2.data.local.GestionEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
@@ -9,12 +12,23 @@ import cl.duocuc.evaluacion2.data.model.Prioridad
 import cl.duocuc.evaluacion2.data.model.TipoAccionHistorial
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.data.model.TipoOportunidad
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class HistorialDescripcionesTest {
+class HistorialDescripcionesTest : StringSpec({
+    "Creacion incluye estado prioridad y responsable" { HistorialDescripcionesTestCases().creacionIncluyeEstadoPrioridadYResponsable() }
+    "Creacion sin responsable lo indica" { HistorialDescripcionesTestCases().creacionSinResponsableLoIndica() }
+    "Actualizacion detecta cambio de estado" { HistorialDescripcionesTestCases().actualizacionDetectaCambioDeEstado() }
+    "Actualizacion detecta cambio de prioridad" { HistorialDescripcionesTestCases().actualizacionDetectaCambioDePrioridad() }
+    "Actualizacion detecta asignacion de responsable" { HistorialDescripcionesTestCases().actualizacionDetectaAsignacionDeResponsable() }
+    "Actualizacion detecta reasignacion de responsable" { HistorialDescripcionesTestCases().actualizacionDetectaReasignacionDeResponsable() }
+    "Actualizacion sin cambios devuelve lista vacia" { HistorialDescripcionesTestCases().actualizacionSinCambiosDevuelveListaVacia() }
+    "Actualizacion detecta edicion de datos" { HistorialDescripcionesTestCases().actualizacionDetectaEdicionDeDatos() }
+    "Gestion incluye tipo detalle y cambio de estado" { HistorialDescripcionesTestCases().gestionIncluyeTipoDetalleYCambioDeEstado() }
+    "Gestion sin cambio de estado no menciona estado" { HistorialDescripcionesTestCases().gestionSinCambioDeEstadoNoMencionaEstado() }
+    "Gestion sin descripcion solo indica el tipo" { HistorialDescripcionesTestCases().gestionSinDescripcionSoloIndicaElTipo() }
+    "Gestion de tipo generico no repite la palabra" { HistorialDescripcionesTestCases().gestionDeTipoGenericoNoRepiteLaPalabra() }
+})
+
+private class HistorialDescripcionesTestCases {
 
     private fun oportunidad(
         nombre: String = "Feria de bienestar",
@@ -33,27 +47,24 @@ class HistorialDescripcionesTest {
         responsableId = responsableId
     )
 
-    @Test
     fun creacionIncluyeEstadoPrioridadYResponsable() {
         val cambio = HistorialDescripciones.creacion(oportunidad(), "Dalí Morales")
 
-        assertEquals(TipoAccionHistorial.CREACION, cambio.tipoAccion)
-        assertTrue(cambio.descripcion.contains("Evento identificado"))
-        assertTrue(cambio.descripcion.contains("Media"))
-        assertTrue(cambio.descripcion.contains("Dalí Morales"))
+        (cambio.tipoAccion) shouldBe (TipoAccionHistorial.CREACION)
+        (cambio.descripcion.contains("Evento identificado")) shouldBe true
+        (cambio.descripcion.contains("Media")) shouldBe true
+        (cambio.descripcion.contains("Dalí Morales")) shouldBe true
     }
 
-    @Test
     fun creacionSinResponsableLoIndica() {
         val cambio = HistorialDescripciones.creacion(
             oportunidad(responsableId = null),
             null
         )
 
-        assertTrue(cambio.descripcion.contains("Sin responsable"))
+        (cambio.descripcion.contains("Sin responsable")) shouldBe true
     }
 
-    @Test
     fun actualizacionDetectaCambioDeEstado() {
         val cambios = HistorialDescripciones.actualizacion(
             anterior = oportunidad(estado = EstadoGestion.EVENTO_IDENTIFICADO.name),
@@ -62,13 +73,12 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Dalí Morales"
         )
 
-        assertEquals(1, cambios.size)
-        assertEquals(TipoAccionHistorial.CAMBIO_ESTADO, cambios.first().tipoAccion)
-        assertTrue(cambios.first().descripcion.contains("Evento identificado"))
-        assertTrue(cambios.first().descripcion.contains("Contacto realizado"))
+        (cambios.size) shouldBe (1)
+        (cambios.first().tipoAccion) shouldBe (TipoAccionHistorial.CAMBIO_ESTADO)
+        (cambios.first().descripcion.contains("Evento identificado")) shouldBe true
+        (cambios.first().descripcion.contains("Contacto realizado")) shouldBe true
     }
 
-    @Test
     fun actualizacionDetectaCambioDePrioridad() {
         val cambios = HistorialDescripciones.actualizacion(
             anterior = oportunidad(prioridad = Prioridad.ALTA.name),
@@ -77,13 +87,12 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Dalí Morales"
         )
 
-        assertEquals(1, cambios.size)
-        assertEquals(TipoAccionHistorial.CAMBIO_PRIORIDAD, cambios.first().tipoAccion)
-        assertTrue(cambios.first().descripcion.contains("Alta"))
-        assertTrue(cambios.first().descripcion.contains("Baja"))
+        (cambios.size) shouldBe (1)
+        (cambios.first().tipoAccion) shouldBe (TipoAccionHistorial.CAMBIO_PRIORIDAD)
+        (cambios.first().descripcion.contains("Alta")) shouldBe true
+        (cambios.first().descripcion.contains("Baja")) shouldBe true
     }
 
-    @Test
     fun actualizacionDetectaAsignacionDeResponsable() {
         val cambios = HistorialDescripciones.actualizacion(
             anterior = oportunidad(responsableId = null),
@@ -92,12 +101,11 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Maxine Moreno"
         )
 
-        assertEquals(1, cambios.size)
-        assertEquals(TipoAccionHistorial.ASIGNACION_RESPONSABLE, cambios.first().tipoAccion)
-        assertTrue(cambios.first().descripcion.contains("Responsable asignado: Maxine Moreno"))
+        (cambios.size) shouldBe (1)
+        (cambios.first().tipoAccion) shouldBe (TipoAccionHistorial.ASIGNACION_RESPONSABLE)
+        (cambios.first().descripcion.contains("Responsable asignado: Maxine Moreno")) shouldBe true
     }
 
-    @Test
     fun actualizacionDetectaReasignacionDeResponsable() {
         val cambios = HistorialDescripciones.actualizacion(
             anterior = oportunidad(responsableId = 1L),
@@ -106,14 +114,11 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Maxine Moreno"
         )
 
-        assertEquals(1, cambios.size)
-        assertEquals(TipoAccionHistorial.REASIGNACION_RESPONSABLE, cambios.first().tipoAccion)
-        assertTrue(
-            cambios.first().descripcion.contains("Responsable reasignado: Dalí Morales → Maxine Moreno")
-        )
+        (cambios.size) shouldBe (1)
+        (cambios.first().tipoAccion) shouldBe (TipoAccionHistorial.REASIGNACION_RESPONSABLE)
+        (cambios.first().descripcion.contains("Responsable reasignado: Dalí Morales → Maxine Moreno")) shouldBe true
     }
 
-    @Test
     fun actualizacionSinCambiosDevuelveListaVacia() {
         val cambios = HistorialDescripciones.actualizacion(
             anterior = oportunidad(),
@@ -122,10 +127,9 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Dalí Morales"
         )
 
-        assertTrue(cambios.isEmpty())
+        (cambios.isEmpty()) shouldBe true
     }
 
-    @Test
     fun actualizacionDetectaEdicionDeDatos() {
         val anterior = oportunidad()
         val nueva = anterior.copy(
@@ -140,13 +144,12 @@ class HistorialDescripcionesTest {
             responsableNuevo = "Dalí Morales"
         )
 
-        assertEquals(1, cambios.size)
-        assertEquals(TipoAccionHistorial.EDICION, cambios.first().tipoAccion)
-        assertTrue(cambios.first().descripcion.contains("Nombre"))
-        assertTrue(cambios.first().descripcion.contains("Descripción"))
+        (cambios.size) shouldBe (1)
+        (cambios.first().tipoAccion) shouldBe (TipoAccionHistorial.EDICION)
+        (cambios.first().descripcion.contains("Nombre")) shouldBe true
+        (cambios.first().descripcion.contains("Descripción")) shouldBe true
     }
 
-    @Test
     fun gestionIncluyeTipoDetalleYCambioDeEstado() {
         val gestion = GestionEntity(
             oportunidadId = 1L,
@@ -161,13 +164,12 @@ class HistorialDescripcionesTest {
             estadoNuevo = EstadoGestion.CONTACTO_REALIZADO.name
         )
 
-        assertEquals(TipoAccionHistorial.GESTION, cambio.tipoAccion)
-        assertTrue(cambio.descripcion.contains("Gestión de Contacto registrada"))
-        assertTrue(cambio.descripcion.contains("Llamada realizada con la organización"))
-        assertTrue(cambio.descripcion.contains("Estado: Evento identificado → Contacto realizado"))
+        (cambio.tipoAccion) shouldBe (TipoAccionHistorial.GESTION)
+        (cambio.descripcion.contains("Gestión de Contacto registrada")) shouldBe true
+        (cambio.descripcion.contains("Llamada realizada con la organización")) shouldBe true
+        (cambio.descripcion.contains("Estado: Evento identificado → Contacto realizado")) shouldBe true
     }
 
-    @Test
     fun gestionSinCambioDeEstadoNoMencionaEstado() {
         val gestion = GestionEntity(
             oportunidadId = 1L,
@@ -182,11 +184,10 @@ class HistorialDescripcionesTest {
             estadoNuevo = EstadoGestion.CONTACTO_PENDIENTE.name
         )
 
-        assertEquals(TipoAccionHistorial.GESTION, cambio.tipoAccion)
-        assertFalse(cambio.descripcion.contains("Estado:"))
+        (cambio.tipoAccion) shouldBe (TipoAccionHistorial.GESTION)
+        (cambio.descripcion.contains("Estado:")) shouldBe false
     }
 
-    @Test
     fun gestionSinDescripcionSoloIndicaElTipo() {
         val gestion = GestionEntity(
             oportunidadId = 1L,
@@ -201,10 +202,9 @@ class HistorialDescripcionesTest {
             estadoNuevo = EstadoGestion.CONTACTO_PENDIENTE.name
         )
 
-        assertEquals("Gestión de Contacto registrada.", cambio.descripcion)
+        (cambio.descripcion) shouldBe ("Gestión de Contacto registrada.")
     }
 
-    @Test
     fun gestionDeTipoGenericoNoRepiteLaPalabra() {
         val gestion = GestionEntity(
             oportunidadId = 1L,
@@ -219,6 +219,6 @@ class HistorialDescripcionesTest {
             estadoNuevo = EstadoGestion.CONTACTO_PENDIENTE.name
         )
 
-        assertEquals("Gestión registrada.", cambio.descripcion)
+        (cambio.descripcion) shouldBe ("Gestión registrada.")
     }
 }

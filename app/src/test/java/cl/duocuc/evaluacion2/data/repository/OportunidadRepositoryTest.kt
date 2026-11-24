@@ -1,5 +1,8 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.data.local.GestionDao
 import cl.duocuc.evaluacion2.data.local.HistorialCambioDao
 import cl.duocuc.evaluacion2.data.local.OpportunityDao
@@ -14,11 +17,19 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.single
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class OportunidadRepositoryTest {
+class OportunidadRepositoryTest : StringSpec({
+    "Nueva oportunidad inserta historial de creacion" { OportunidadRepositoryTestCases().nuevaOportunidadInsertaHistorialDeCreacion() }
+    "Historial usa nombre alternativo osin responsable" { OportunidadRepositoryTestCases().historialUsaNombreAlternativoOSinResponsable() }
+    "Edicion conserva fecha creacion y registra diferencias" { OportunidadRepositoryTestCases().edicionConservaFechaCreacionYRegistraDiferencias() }
+    "Edicion de oportunidad inexistente falla sin actualizar" { OportunidadRepositoryTestCases().edicionDeOportunidadInexistenteFallaSinActualizar() }
+    "Eliminar borra gestiones historial y oportunidad en transaccion" { OportunidadRepositoryTestCases().eliminarBorraGestionesHistorialYOportunidadEnTransaccion() }
+    "Completa historial usando responsable ousuario predeterminado" { OportunidadRepositoryTestCases().completaHistorialUsandoResponsableOUsuarioPredeterminado() }
+    "Semilla solo inserta cuando no hay oportunidades" { OportunidadRepositoryTestCases().semillaSoloInsertaCuandoNoHayOportunidades() }
+    "Metodos de consulta y asignacion delegan al dao" { OportunidadRepositoryTestCases().metodosDeConsultaYAsignacionDeleganAlDao() }
+})
+
+private class OportunidadRepositoryTestCases {
 
     private val opportunityDao = mockk<OpportunityDao>()
     private val gestionDao = mockk<GestionDao>()
@@ -32,14 +43,13 @@ class OportunidadRepositoryTest {
         ejecutorTransacciones = ImmediateTransactionExecutor
     )
 
-    @Test
     fun nuevaOportunidadInsertaHistorialDeCreacion() = runBlocking {
         val oportunidad = oportunidad(responsableId = 8)
         coEvery { opportunityDao.insert(oportunidad) } returns 15
         coEvery { usuarioDao.buscarPorId(8) } returns usuario(8)
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(15L, repository.guardar(oportunidad, usuarioId = 8))
+        (repository.guardar(oportunidad, usuarioId = 8)) shouldBe (15L)
 
         coVerify(exactly = 1) {
             historialDao.insert(match {
@@ -52,7 +62,6 @@ class OportunidadRepositoryTest {
         }
     }
 
-    @Test
     fun historialUsaNombreAlternativoOSinResponsable() = runBlocking {
         coEvery { opportunityDao.insert(any()) } returnsMany listOf(16, 17)
         coEvery { usuarioDao.buscarPorId(73) } returns null
@@ -67,7 +76,6 @@ class OportunidadRepositoryTest {
         }
     }
 
-    @Test
     fun edicionConservaFechaCreacionYRegistraDiferencias() = runBlocking {
         val anterior = oportunidad(id = 4, nombre = "Anterior", fechaCreacion = 100)
         val editada = anterior.copy(nombre = "Actualizada", fechaCreacion = 900)
@@ -76,12 +84,12 @@ class OportunidadRepositoryTest {
         coEvery { opportunityDao.update(any()) } returns Unit
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(4L, repository.guardar(editada, usuarioId = 8))
+        (repository.guardar(editada, usuarioId = 8)) shouldBe (4L)
 
         val guardada = slot<OpportunityEntity>()
         coVerify { opportunityDao.update(capture(guardada)) }
-        assertEquals(100L, guardada.captured.fechaCreacion)
-        assertTrue(guardada.captured.fechaActualizacion >= 900L)
+        (guardada.captured.fechaCreacion) shouldBe (100L)
+        (guardada.captured.fechaActualizacion >= 900L) shouldBe true
         coVerify(exactly = 1) {
             historialDao.insert(match {
                 it.oportunidadId == 4L &&
@@ -91,7 +99,6 @@ class OportunidadRepositoryTest {
         }
     }
 
-    @Test
     fun edicionDeOportunidadInexistenteFallaSinActualizar() = runBlocking {
         coEvery { opportunityDao.buscarPorId(42) } returns null
 
@@ -99,18 +106,17 @@ class OportunidadRepositoryTest {
             repository.guardar(oportunidad(id = 42), usuarioId = 8)
         }.exceptionOrNull()
 
-        assertEquals("La oportunidad ya no está disponible.", error?.message)
+        (error?.message) shouldBe ("La oportunidad ya no está disponible.")
         coVerify(exactly = 0) { opportunityDao.update(any()) }
         coVerify(exactly = 0) { historialDao.insert(any()) }
     }
 
-    @Test
     fun eliminarBorraGestionesHistorialYOportunidadEnTransaccion() = runBlocking {
         coEvery { gestionDao.deleteByOportunidad(5) } returns 2
         coEvery { historialDao.deleteByOportunidad(5) } returns 3
         coEvery { opportunityDao.deleteById(5) } returns 1
 
-        assertEquals(1, repository.eliminar(5))
+        (repository.eliminar(5)) shouldBe (1)
 
         coVerifyOrder {
             gestionDao.deleteByOportunidad(5)
@@ -119,7 +125,6 @@ class OportunidadRepositoryTest {
         }
     }
 
-    @Test
     fun completaHistorialUsandoResponsableOUsuarioPredeterminado() = runBlocking {
         val asignada = oportunidad(id = 1, responsableId = 8)
         val pendiente = oportunidad(id = 2, responsableId = null)
@@ -135,7 +140,6 @@ class OportunidadRepositoryTest {
         }
     }
 
-    @Test
     fun semillaSoloInsertaCuandoNoHayOportunidades() = runBlocking {
         coEvery { opportunityDao.count() } returnsMany listOf(3, 0)
         coEvery { opportunityDao.insert(any()) } returnsMany listOf(1, 2, 3)
@@ -147,7 +151,6 @@ class OportunidadRepositoryTest {
         coVerify(exactly = 3) { opportunityDao.insert(any()) }
     }
 
-    @Test
     fun metodosDeConsultaYAsignacionDeleganAlDao() = runBlocking {
         val opportunity = oportunidad(id = 3)
         every { opportunityDao.observeAll() } returns kotlinx.coroutines.flow.flowOf(listOf(opportunity))
@@ -155,10 +158,10 @@ class OportunidadRepositoryTest {
         coEvery { opportunityDao.buscarPorId(3) } returns opportunity
         coEvery { opportunityDao.assignNullResponsible(8) } returns 2
 
-        assertEquals(listOf(opportunity), repository.observeAll().single())
-        assertEquals(1, repository.contar())
-        assertEquals(opportunity, repository.buscarPorId(3))
-        assertEquals(2, repository.asignarResponsablesPendientes(8))
+        (repository.observeAll().single()) shouldBe (listOf(opportunity))
+        (repository.contar()) shouldBe (1)
+        (repository.buscarPorId(3)) shouldBe (opportunity)
+        (repository.asignarResponsablesPendientes(8)) shouldBe (2)
     }
 
     private fun oportunidad(

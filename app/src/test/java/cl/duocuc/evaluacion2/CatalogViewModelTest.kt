@@ -1,5 +1,12 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+
 import cl.duocuc.evaluacion2.data.local.ContactoEntity
 import cl.duocuc.evaluacion2.data.local.EventoEntity
 import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
@@ -18,19 +25,25 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class CatalogViewModelTest {
+class CatalogViewModelTest : StringSpec({
+    val dispatcher = StandardTestDispatcher()
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    beforeSpec { Dispatchers.setMain(dispatcher) }
+    afterSpec { Dispatchers.resetMain() }
 
-    @Test
+    "Organizacion precarga valida recorta guarda y traduce duplicados" { CatalogViewModelTestCases().organizacionPrecargaValidaRecortaGuardaYTraduceDuplicados() }
+    "Contacto aplica organizacion por defecto precarga y persiste datos limpios" { CatalogViewModelTestCases().contactoAplicaOrganizacionPorDefectoPrecargaYPersisteDatosLimpios() }
+    "Contacto rechaza datos invalidos y expone error del repositorio" { CatalogViewModelTestCases().contactoRechazaDatosInvalidosYExponeErrorDelRepositorio() }
+    "Evento aplica organizacion por defecto valida y guarda" { CatalogViewModelTestCases().eventoAplicaOrganizacionPorDefectoValidaYGuarda() }
+    "Evento rechaza validacion y reporta error de repositorio" { CatalogViewModelTestCases().eventoRechazaValidacionYReportaErrorDeRepositorio() }
+})
+
+@OptIn(ExperimentalCoroutinesApi::class)
+private class CatalogViewModelTestCases {
+
+
     fun organizacionPrecargaValidaRecortaGuardaYTraduceDuplicados() = runTest {
         val existing = organizacion(id = 3)
         val repository = mockk<OrganizacionRepository>(relaxed = true)
@@ -41,7 +54,7 @@ class CatalogViewModelTest {
         advanceUntilIdle()
 
         viewModel.beginEditar(3)
-        assertEquals(existing.nombre, viewModel.editor.value.form.nombre)
+        (viewModel.editor.value.form.nombre) shouldBe (existing.nombre)
         viewModel.onNombreChange("  Agencia Max Editada  ")
         viewModel.guardar {}
         advanceUntilIdle()
@@ -49,11 +62,11 @@ class CatalogViewModelTest {
             repository.guardar(match { it.id == 3L && it.nombre == "Agencia Max Editada" })
         }
         viewModel.beginEditar(999)
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró"))
+        (viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró")) shouldBe true
 
         viewModel.beginNueva()
         viewModel.guardar {}
-        assertTrue(viewModel.editor.value.errores.hayErrores)
+        (viewModel.editor.value.errores.hayErrores) shouldBe true
         coVerify(exactly = 1) { repository.guardar(any()) }
 
         viewModel.onNombreChange("  Agencia Max  ")
@@ -67,12 +80,12 @@ class CatalogViewModelTest {
 
         val saved = mutableListOf<OrganizacionEntity>()
         coVerify(exactly = 2) { repository.guardar(capture(saved)) }
-        assertEquals("Agencia Max", saved[1].nombre)
-        assertEquals("Santiago", saved[1].comuna)
-        assertEquals("https://example.com", saved[1].sitioWeb)
-        assertEquals("Nota", saved[1].observaciones)
-        assertEquals(40L, savedId)
-        assertFalse(viewModel.editor.value.guardando)
+        (saved[1].nombre) shouldBe ("Agencia Max")
+        (saved[1].comuna) shouldBe ("Santiago")
+        (saved[1].sitioWeb) shouldBe ("https://example.com")
+        (saved[1].observaciones) shouldBe ("Nota")
+        (savedId) shouldBe (40L)
+        (viewModel.editor.value.guardando) shouldBe false
 
         coEvery { repository.guardar(any()) } throws IllegalStateException("UNIQUE constraint")
         viewModel.beginNueva()
@@ -81,10 +94,9 @@ class CatalogViewModelTest {
         viewModel.onComunaChange("Santiago")
         viewModel.guardar {}
         advanceUntilIdle()
-        assertEquals("Ya existe una organización con ese nombre.", viewModel.editor.value.mensajeError)
+        (viewModel.editor.value.mensajeError) shouldBe ("Ya existe una organización con ese nombre.")
     }
 
-    @Test
     fun contactoAplicaOrganizacionPorDefectoPrecargaYPersisteDatosLimpios() = runTest {
         val organization = organizacion(id = 8)
         val existing = contacto(id = 5, organizationId = 8)
@@ -99,15 +111,15 @@ class CatalogViewModelTest {
         advanceUntilIdle()
 
         viewModel.beginNueva()
-        assertEquals(8L, viewModel.editor.value.form.organizacionId)
+        (viewModel.editor.value.form.organizacionId) shouldBe (8L)
         viewModel.beginEditar(5)
-        assertEquals("Ana Pérez", viewModel.editor.value.form.nombre)
+        (viewModel.editor.value.form.nombre) shouldBe ("Ana Pérez")
         viewModel.onNombreChange("  Ana Editada  ")
         viewModel.guardar {}
         advanceUntilIdle()
         coVerify { contactoRepository.guardar(match { it.id == 5L && it.nombre == "Ana Editada" }) }
         viewModel.beginEditar(999)
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró"))
+        (viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró")) shouldBe true
 
         viewModel.beginNueva()
         viewModel.onNombreChange("  Ana Pérez  ")
@@ -122,16 +134,15 @@ class CatalogViewModelTest {
 
         val saved = mutableListOf<ContactoEntity>()
         coVerify(exactly = 2) { contactoRepository.guardar(capture(saved)) }
-        assertEquals("Ana Pérez", saved[1].nombre)
-        assertEquals(8L, saved[1].organizacionId)
-        assertEquals("Gerenta", saved[1].cargo)
-        assertEquals("ana@example.com", saved[1].correo)
-        assertEquals("56912345678", saved[1].telefono)
-        assertEquals("Comercial", saved[1].area)
-        assertEquals(50L, savedId)
+        (saved[1].nombre) shouldBe ("Ana Pérez")
+        (saved[1].organizacionId) shouldBe (8L)
+        (saved[1].cargo) shouldBe ("Gerenta")
+        (saved[1].correo) shouldBe ("ana@example.com")
+        (saved[1].telefono) shouldBe ("56912345678")
+        (saved[1].area) shouldBe ("Comercial")
+        (savedId) shouldBe (50L)
     }
 
-    @Test
     fun contactoRechazaDatosInvalidosYExponeErrorDelRepositorio() = runTest {
         val repository = mockk<ContactoRepository>(relaxed = true)
         val organizations = mockk<OrganizacionRepository>()
@@ -142,7 +153,7 @@ class CatalogViewModelTest {
         advanceUntilIdle()
         viewModel.beginNueva()
         viewModel.guardar {}
-        assertTrue(viewModel.editor.value.errores.hayErrores)
+        (viewModel.editor.value.errores.hayErrores) shouldBe true
 
         viewModel.onNombreChange("Ana Pérez")
         viewModel.onCargoChange("Gerenta")
@@ -151,11 +162,10 @@ class CatalogViewModelTest {
         coEvery { repository.guardar(any()) } throws IllegalStateException("UNIQUE")
         viewModel.guardar {}
         advanceUntilIdle()
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("UNIQUE"))
-        assertFalse(viewModel.editor.value.guardando)
+        (viewModel.editor.value.mensajeError.orEmpty().contains("UNIQUE")) shouldBe true
+        (viewModel.editor.value.guardando) shouldBe false
     }
 
-    @Test
     fun eventoAplicaOrganizacionPorDefectoValidaYGuarda() = runTest {
         val organization = organizacion(id = 11)
         val existing = evento(id = 6, organizationId = 11)
@@ -170,15 +180,15 @@ class CatalogViewModelTest {
         advanceUntilIdle()
 
         viewModel.beginNueva()
-        assertEquals(11L, viewModel.editor.value.form.organizacionId)
+        (viewModel.editor.value.form.organizacionId) shouldBe (11L)
         viewModel.beginEditar(6)
-        assertEquals(existing.fecha, viewModel.editor.value.form.fecha)
+        (viewModel.editor.value.form.fecha) shouldBe (existing.fecha)
         viewModel.onNombreChange("  Feria editada  ")
         viewModel.guardar {}
         advanceUntilIdle()
         coVerify { eventRepository.guardar(match { it.id == 6L && it.nombre == "Feria editada" }) }
         viewModel.beginEditar(99)
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró"))
+        (viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró")) shouldBe true
 
         viewModel.beginNueva()
         viewModel.onNombreChange("  Feria comunal  ")
@@ -190,14 +200,13 @@ class CatalogViewModelTest {
 
         val saved = mutableListOf<EventoEntity>()
         coVerify(exactly = 2) { eventRepository.guardar(capture(saved)) }
-        assertEquals("Feria comunal", saved[1].nombre)
-        assertEquals(1234L, saved[1].fecha)
-        assertEquals("Maipú", saved[1].comuna)
-        assertEquals(11L, saved[1].organizacionId)
-        assertEquals(60L, savedId)
+        (saved[1].nombre) shouldBe ("Feria comunal")
+        (saved[1].fecha) shouldBe (1234L)
+        (saved[1].comuna) shouldBe ("Maipú")
+        (saved[1].organizacionId) shouldBe (11L)
+        (savedId) shouldBe (60L)
     }
 
-    @Test
     fun eventoRechazaValidacionYReportaErrorDeRepositorio() = runTest {
         val repository = mockk<EventoRepository>(relaxed = true)
         val organizations = mockk<OrganizacionRepository>()
@@ -208,7 +217,7 @@ class CatalogViewModelTest {
         advanceUntilIdle()
         viewModel.beginNueva()
         viewModel.guardar {}
-        assertTrue(viewModel.editor.value.errores.hayErrores)
+        (viewModel.editor.value.errores.hayErrores) shouldBe true
 
         viewModel.onNombreChange("Feria")
         viewModel.onFechaChange(1234)
@@ -216,8 +225,8 @@ class CatalogViewModelTest {
         coEvery { repository.guardar(any()) } throws IllegalStateException("No se pudo persistir")
         viewModel.guardar {}
         advanceUntilIdle()
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("No se pudo persistir"))
-        assertFalse(viewModel.editor.value.guardando)
+        (viewModel.editor.value.mensajeError.orEmpty().contains("No se pudo persistir")) shouldBe true
+        (viewModel.editor.value.guardando) shouldBe false
     }
 
     private fun organizacion(id: Long) = OrganizacionEntity(

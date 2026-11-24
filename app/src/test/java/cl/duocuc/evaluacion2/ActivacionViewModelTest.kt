@@ -1,5 +1,13 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.doubles.plusOrMinus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+
 import cl.duocuc.evaluacion2.data.local.ActivacionEntity
 import cl.duocuc.evaluacion2.data.local.EvidenciaEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
@@ -20,20 +28,27 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ActivacionViewModelTest {
+class ActivacionViewModelTest : StringSpec({
+    val dispatcher = StandardTestDispatcher()
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    beforeSpec { Dispatchers.setMain(dispatcher) }
+    afterSpec { Dispatchers.resetMain() }
 
-    @Test
+    "Cargar mapea datos defaults resultado final y es idempotente" { ActivacionViewModelTestCases().cargarMapeaDatosDefaultsResultadoFinalYEsIdempotente() }
+    "Cargar usa responsable predeterminado y estado final de la oportunidad" { ActivacionViewModelTestCases().cargarUsaResponsablePredeterminadoYEstadoFinalDeLaOportunidad() }
+    "Cargar informa oportunidad ausente y excepciones" { ActivacionViewModelTestCases().cargarInformaOportunidadAusenteYExcepciones() }
+    "Costo vacio y con coma son validos mientras negativo ono numerico se rechazan" { ActivacionViewModelTestCases().costoVacioYConComaSonValidosMientrasNegativoONoNumericoSeRechazan() }
+    "Guardar coordinacion valida sesion responsable y recorta campos" { ActivacionViewModelTestCases().guardarCoordinacionValidaSesionResponsableYRecortaCampos() }
+    "Agrega evidencia exige activacion y sesion y actualiza lista" { ActivacionViewModelTestCases().agregaEvidenciaExigeActivacionYSesionYActualizaLista() }
+    "Guardar resultado valida estado sesion y activacion y actualiza resultado" { ActivacionViewModelTestCases().guardarResultadoValidaEstadoSesionYActivacionYActualizaResultado() }
+})
+
+@OptIn(ExperimentalCoroutinesApi::class)
+private class ActivacionViewModelTestCases {
+
+
     fun cargarMapeaDatosDefaultsResultadoFinalYEsIdempotente() = runTest {
         val repository = repository(
             activation = ActivacionEntity(
@@ -62,24 +77,23 @@ class ActivacionViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertEquals("Feria", state.oportunidadNombre)
-        assertEquals(21L, state.activacionId)
-        assertEquals(listOf(evidencia()), state.evidencias)
-        assertEquals(30L, state.resultadoGuardado?.id)
-        assertTrue(state.participacionConfirmada)
-        assertEquals(7L, state.responsableId)
-        assertEquals("25.5", state.costo)
-        assertEquals("Toldo", state.requisitos)
-        assertEquals("Asistieron", state.observaciones)
-        assertEquals("Alto", state.impacto)
-        assertFalse(state.cargando)
+        (state.oportunidadNombre) shouldBe ("Feria")
+        (state.activacionId) shouldBe (21L)
+        (state.evidencias) shouldBe (listOf(evidencia()))
+        (state.resultadoGuardado?.id) shouldBe (30L)
+        (state.participacionConfirmada) shouldBe true
+        (state.responsableId) shouldBe (7L)
+        (state.costo) shouldBe ("25.5")
+        (state.requisitos) shouldBe ("Toldo")
+        (state.observaciones) shouldBe ("Asistieron")
+        (state.impacto) shouldBe ("Alto")
+        (state.cargando) shouldBe false
 
         viewModel.cargar(4)
         advanceUntilIdle()
         coVerify(exactly = 1) { repository.obtenerOportunidad(4) }
     }
 
-    @Test
     fun cargarUsaResponsablePredeterminadoYEstadoFinalDeLaOportunidad() = runTest {
         val repository = repository(
             opportunity = oportunidad(EstadoGestion.OPORTUNIDAD_DESCARTADA.name),
@@ -92,12 +106,11 @@ class ActivacionViewModelTest {
         viewModel.cargar(4)
         advanceUntilIdle()
 
-        assertEquals(8L, viewModel.uiState.value.responsableId)
-        assertEquals(EstadoGestion.OPORTUNIDAD_DESCARTADA.name, viewModel.uiState.value.resultadoFinal)
-        assertFalse(viewModel.uiState.value.participacionConfirmada)
+        (viewModel.uiState.value.responsableId) shouldBe (8L)
+        (viewModel.uiState.value.resultadoFinal) shouldBe (EstadoGestion.OPORTUNIDAD_DESCARTADA.name)
+        (viewModel.uiState.value.participacionConfirmada) shouldBe false
     }
 
-    @Test
     fun cargarInformaOportunidadAusenteYExcepciones() = runTest {
         val repository = repository(opportunity = null)
         val viewModel = ActivacionViewModel(repository, SessionManager())
@@ -105,16 +118,15 @@ class ActivacionViewModelTest {
 
         viewModel.cargar(4)
         advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("ya no está disponible"))
-        assertFalse(viewModel.uiState.value.cargando)
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("ya no está disponible")) shouldBe true
+        (viewModel.uiState.value.cargando) shouldBe false
 
         coEvery { repository.obtenerOportunidad(5) } throws IllegalStateException("DB falla")
         viewModel.cargar(5)
         advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("DB falla"))
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("DB falla")) shouldBe true
     }
 
-    @Test
     fun costoVacioYConComaSonValidosMientrasNegativoONoNumericoSeRechazan() = runTest {
         val repository = repository()
         val session = SessionManager().apply { iniciar(ejecutivo()) }
@@ -132,19 +144,18 @@ class ActivacionViewModelTest {
         advanceUntilIdle()
         val savedCosts = mutableListOf<ActivacionEntity>()
         coVerify(exactly = 2) { repository.guardarActivacion(capture(savedCosts), 1) }
-        assertNull(savedCosts[0].costo)
-        assertEquals(12.75, savedCosts[1].costo!!, 0.001)
+        (savedCosts[0].costo) shouldBe null
+        (savedCosts[1].costo!!) shouldBe (12.75 plusOrMinus 0.001)
 
         viewModel.onCostoChange("-1")
         viewModel.guardarCoordinacion()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("mayor que cero"))
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("mayor que cero")) shouldBe true
 
         viewModel.onCostoChange("abc")
         viewModel.guardarCoordinacion()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("número"))
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("número")) shouldBe true
     }
 
-    @Test
     fun guardarCoordinacionValidaSesionResponsableYRecortaCampos() = runTest {
         val noSessionRepository = repository()
         val noSession = ActivacionViewModel(noSessionRepository, SessionManager())
@@ -152,7 +163,7 @@ class ActivacionViewModelTest {
         noSession.cargar(4)
         advanceUntilIdle()
         noSession.guardarCoordinacion()
-        assertTrue(noSession.uiState.value.mensajeError.orEmpty().contains("sesión"))
+        (noSession.uiState.value.mensajeError.orEmpty().contains("sesión")) shouldBe true
 
         val repo = repository(users = emptyList())
         val viewModel = ActivacionViewModel(repo, SessionManager().apply { iniciar(ejecutivo()) })
@@ -160,7 +171,7 @@ class ActivacionViewModelTest {
         viewModel.cargar(4)
         advanceUntilIdle()
         viewModel.guardarCoordinacion()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("responsable"))
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("responsable")) shouldBe true
 
         val validRepo = repository()
         coEvery { validRepo.guardarActivacion(any(), 1) } returns 55
@@ -176,19 +187,18 @@ class ActivacionViewModelTest {
 
         val saved = slot<ActivacionEntity>()
         coVerify(exactly = 1) { validRepo.guardarActivacion(capture(saved), 1) }
-        assertEquals("Plaza", saved.captured.espacio)
-        assertEquals("Permiso municipal", saved.captured.requisitos)
-        assertEquals(55L, validVm.uiState.value.activacionId)
-        assertEquals("Coordinación guardada.", validVm.uiState.value.mensajeExito)
+        (saved.captured.espacio) shouldBe ("Plaza")
+        (saved.captured.requisitos) shouldBe ("Permiso municipal")
+        (validVm.uiState.value.activacionId) shouldBe (55L)
+        (validVm.uiState.value.mensajeExito) shouldBe ("Coordinación guardada.")
     }
 
-    @Test
     fun agregaEvidenciaExigeActivacionYSesionYActualizaLista() = runTest {
         val noActivationRepo = repository()
         val noActivationVm = ActivacionViewModel(noActivationRepo, SessionManager().apply { iniciar(ejecutivo()) })
         advanceUntilIdle()
         noActivationVm.agregarEvidencia("FOTO", "stand.jpg", "content://stand")
-        assertTrue(noActivationVm.uiState.value.mensajeError.orEmpty().contains("Guarda la coordinación"))
+        (noActivationVm.uiState.value.mensajeError.orEmpty().contains("Guarda la coordinación")) shouldBe true
 
         val evidence = evidencia()
         val repo = repository(
@@ -204,15 +214,14 @@ class ActivacionViewModelTest {
         viewModel.agregarEvidencia("FOTO", "otra.jpg", "content://otra")
         advanceUntilIdle()
 
-        assertEquals(listOf(evidence), viewModel.uiState.value.evidencias)
-        assertEquals("Evidencia adjunta.", viewModel.uiState.value.mensajeExito)
+        (viewModel.uiState.value.evidencias) shouldBe (listOf(evidence))
+        (viewModel.uiState.value.mensajeExito) shouldBe ("Evidencia adjunta.")
     }
 
-    @Test
     fun guardarResultadoValidaEstadoSesionYActivacionYActualizaResultado() = runTest {
         val noActivation = ActivacionViewModel(repository(), SessionManager())
         noActivation.guardarResultado()
-        assertTrue(noActivation.uiState.value.mensajeError.orEmpty().contains("Guarda la coordinación"))
+        (noActivation.uiState.value.mensajeError.orEmpty().contains("Guarda la coordinación")) shouldBe true
 
         val repository = repository(
             activation = ActivacionEntity(id = 21, oportunidadId = 4, responsableId = 1)
@@ -222,7 +231,7 @@ class ActivacionViewModelTest {
         viewModel.cargar(4)
         advanceUntilIdle()
         viewModel.guardarResultado()
-        assertTrue(viewModel.uiState.value.mensajeError.orEmpty().contains("sesión"))
+        (viewModel.uiState.value.mensajeError.orEmpty().contains("sesión")) shouldBe true
 
         val session = SessionManager().apply { iniciar(ejecutivo()) }
         val validVm = ActivacionViewModel(repository, session)
@@ -231,7 +240,7 @@ class ActivacionViewModelTest {
         advanceUntilIdle()
         validVm.onResultadoFinalChange("INVALIDO")
         validVm.guardarResultado()
-        assertTrue(validVm.uiState.value.mensajeError.orEmpty().contains("resultado final"))
+        (validVm.uiState.value.mensajeError.orEmpty().contains("resultado final")) shouldBe true
 
         coEvery { repository.guardarResultado(any(), any(), any(), any(), any(), any()) } returns 77
         validVm.onResultadoFinalChange(EstadoGestion.PARTICIPACION_CONFIRMADA.name)
@@ -240,10 +249,10 @@ class ActivacionViewModelTest {
         validVm.guardarResultado()
         advanceUntilIdle()
 
-        assertEquals(EstadoGestion.PARTICIPACION_CONFIRMADA.name, validVm.uiState.value.resultadoGuardado?.resultado)
-        assertEquals("Confirmada", validVm.uiState.value.resultadoGuardado?.observaciones)
-        assertTrue(validVm.uiState.value.participacionConfirmada)
-        assertEquals("Resultado guardado y oportunidad cerrada.", validVm.uiState.value.mensajeExito)
+        (validVm.uiState.value.resultadoGuardado?.resultado) shouldBe (EstadoGestion.PARTICIPACION_CONFIRMADA.name)
+        (validVm.uiState.value.resultadoGuardado?.observaciones) shouldBe ("Confirmada")
+        (validVm.uiState.value.participacionConfirmada) shouldBe true
+        (validVm.uiState.value.mensajeExito) shouldBe ("Resultado guardado y oportunidad cerrada.")
     }
 
     private fun repository(

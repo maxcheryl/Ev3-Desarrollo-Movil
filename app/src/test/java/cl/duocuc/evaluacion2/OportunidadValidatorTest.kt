@@ -1,5 +1,9 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
@@ -7,13 +11,17 @@ import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.FuentesOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadFormState
 import cl.duocuc.evaluacion2.validation.OportunidadValidator
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class OportunidadValidatorTest {
+class OportunidadValidatorTest : StringSpec({
+    "Formulario valido no tiene errores" { OportunidadValidatorTestCases().formularioValidoNoTieneErrores() }
+    "Campos obligatorios vacios reportan errores" { OportunidadValidatorTestCases().camposObligatoriosVaciosReportanErrores() }
+    "Nombre muy corto es rechazado" { OportunidadValidatorTestCases().nombreMuyCortoEsRechazado() }
+    "Opciones de seleccion invalidas son rechazadas" { OportunidadValidatorTestCases().opcionesDeSeleccionInvalidasSonRechazadas() }
+    "Observaciones es opcional" { OportunidadValidatorTestCases().observacionesEsOpcional() }
+    "Nombre con espacios es recortado al validar" { OportunidadValidatorTestCases().nombreConEspaciosEsRecortadoAlValidar() }
+})
+
+private class OportunidadValidatorTestCases {
 
     private fun formularioValido() = OportunidadFormState(
         nombre = "Feria de bienestar 2026",
@@ -26,34 +34,30 @@ class OportunidadValidatorTest {
         observaciones = ""
     )
 
-    @Test
     fun formularioValidoNoTieneErrores() {
         val errores = OportunidadValidator.validar(formularioValido())
-        assertFalse(errores.hayErrores)
+        (errores.hayErrores) shouldBe false
     }
 
-    @Test
     fun camposObligatoriosVaciosReportanErrores() {
         val errores = OportunidadValidator.validar(OportunidadFormState())
 
-        assertNotNull(errores.nombre)
-        assertNotNull(errores.tipo)
-        assertNotNull(errores.descripcion)
-        assertNotNull(errores.fuente)
-        assertNotNull(errores.prioridad)
-        assertNotNull(errores.potencialComercial)
+        (errores.nombre) shouldNotBe null
+        (errores.tipo) shouldNotBe null
+        (errores.descripcion) shouldNotBe null
+        (errores.fuente) shouldNotBe null
+        (errores.prioridad) shouldNotBe null
+        (errores.potencialComercial) shouldNotBe null
         // El estado inicia en «Evento identificado», por lo que ya es válido
-        assertNull(errores.estado)
-        assertTrue(errores.hayErrores)
+        (errores.estado) shouldBe null
+        (errores.hayErrores) shouldBe true
     }
 
-    @Test
     fun nombreMuyCortoEsRechazado() {
         val errores = OportunidadValidator.validar(formularioValido().copy(nombre = "ab"))
-        assertNotNull(errores.nombre)
+        (errores.nombre) shouldNotBe null
     }
 
-    @Test
     fun opcionesDeSeleccionInvalidasSonRechazadas() {
         val errores = OportunidadValidator.validar(
             formularioValido().copy(
@@ -65,27 +69,25 @@ class OportunidadValidatorTest {
             )
         )
 
-        assertNotNull(errores.tipo)
-        assertNotNull(errores.fuente)
-        assertNotNull(errores.prioridad)
-        assertNotNull(errores.potencialComercial)
-        assertNotNull(errores.estado)
+        (errores.tipo) shouldNotBe null
+        (errores.fuente) shouldNotBe null
+        (errores.prioridad) shouldNotBe null
+        (errores.potencialComercial) shouldNotBe null
+        (errores.estado) shouldNotBe null
     }
 
-    @Test
     fun observacionesEsOpcional() {
         val sinObservaciones = OportunidadValidator.validar(formularioValido())
         val conObservaciones = OportunidadValidator.validar(
             formularioValido().copy(observaciones = "Confirmar asistencia del área de marketing.")
         )
 
-        assertFalse(sinObservaciones.hayErrores)
-        assertFalse(conObservaciones.hayErrores)
+        (sinObservaciones.hayErrores) shouldBe false
+        (conObservaciones.hayErrores) shouldBe false
     }
 
-    @Test
     fun nombreConEspaciosEsRecortadoAlValidar() {
         val errores = OportunidadValidator.validar(formularioValido().copy(nombre = "   "))
-        assertNotNull(errores.nombre)
+        (errores.nombre) shouldNotBe null
     }
 }

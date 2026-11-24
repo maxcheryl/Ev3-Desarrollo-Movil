@@ -1,42 +1,44 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.qr.QrMaxValidator
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class QrMaxValidatorTest {
+class QrMaxValidatorTest : StringSpec({
+    "Contenido con prefijo y codigo es valido" { QrMaxValidatorTestCases().contenidoConPrefijoYCodigoEsValido() }
+    "Contenido sin prefijo no es valido" { QrMaxValidatorTestCases().contenidoSinPrefijoNoEsValido() }
+    "Contenido solo con prefijo no es valido" { QrMaxValidatorTestCases().contenidoSoloConPrefijoNoEsValido() }
+    "Contenido vacio onulo no es valido" { QrMaxValidatorTestCases().contenidoVacioONuloNoEsValido() }
+    "Prefijo en minusculas no es valido" { QrMaxValidatorTestCases().prefijoEnMinusculasNoEsValido() }
+    "Extraer codigo devuelve solo el identificador" { QrMaxValidatorTestCases().extraerCodigoDevuelveSoloElIdentificador() }
+})
 
-    @Test
+private class QrMaxValidatorTestCases {
+
     fun contenidoConPrefijoYCodigoEsValido() {
-        assertTrue(QrMaxValidator.esValido("MAX:OP-001"))
+        (QrMaxValidator.esValido("MAX:OP-001")) shouldBe true
     }
 
-    @Test
     fun contenidoSinPrefijoNoEsValido() {
-        assertFalse(QrMaxValidator.esValido("https://ejemplo.com/op-001"))
+        (QrMaxValidator.esValido("https://ejemplo.com/op-001")) shouldBe false
     }
 
-    @Test
     fun contenidoSoloConPrefijoNoEsValido() {
-        assertFalse(QrMaxValidator.esValido("MAX:"))
+        (QrMaxValidator.esValido("MAX:")) shouldBe false
     }
 
-    @Test
     fun contenidoVacioONuloNoEsValido() {
-        assertFalse(QrMaxValidator.esValido(""))
-        assertFalse(QrMaxValidator.esValido(null))
+        (QrMaxValidator.esValido("")) shouldBe false
+        (QrMaxValidator.esValido(null)) shouldBe false
     }
 
-    @Test
     fun prefijoEnMinusculasNoEsValido() {
-        assertFalse(QrMaxValidator.esValido("max:OP-001"))
+        (QrMaxValidator.esValido("max:OP-001")) shouldBe false
     }
 
-    @Test
     fun extraerCodigoDevuelveSoloElIdentificador() {
-        assertEquals("OP-001", QrMaxValidator.extraerCodigo("MAX:OP-001"))
-        assertEquals("FAIRA-2026", QrMaxValidator.extraerCodigo("MAX:FAIRA-2026"))
+        (QrMaxValidator.extraerCodigo("MAX:OP-001")) shouldBe ("OP-001")
+        (QrMaxValidator.extraerCodigo("MAX:FAIRA-2026")) shouldBe ("FAIRA-2026")
     }
 }

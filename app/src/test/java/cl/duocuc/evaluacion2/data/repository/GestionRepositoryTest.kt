@@ -1,5 +1,8 @@
 package cl.duocuc.evaluacion2.data.repository
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
 import cl.duocuc.evaluacion2.data.local.GestionDao
 import cl.duocuc.evaluacion2.data.local.GestionEntity
 import cl.duocuc.evaluacion2.data.local.HistorialCambioDao
@@ -13,11 +16,14 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class GestionRepositoryTest {
+class GestionRepositoryTest : StringSpec({
+    "Registra gestion actualiza estado y agrega historial" { GestionRepositoryTestCases().registraGestionActualizaEstadoYAgregaHistorial() }
+    "Oportunidad inexistente no registra gestion" { GestionRepositoryTestCases().oportunidadInexistenteNoRegistraGestion() }
+    "Flujos y consulta de oportunidad se delegan" { GestionRepositoryTestCases().flujosYConsultaDeOportunidadSeDelegan() }
+})
+
+private class GestionRepositoryTestCases {
 
     private val gestionDao = mockk<GestionDao>()
     private val opportunityDao = mockk<OpportunityDao>()
@@ -29,7 +35,6 @@ class GestionRepositoryTest {
         ejecutorTransacciones = ImmediateTransactionExecutor
     )
 
-    @Test
     fun registraGestionActualizaEstadoYAgregaHistorial() = runBlocking {
         val oportunidad = oportunidad(estado = "EVENTO_IDENTIFICADO")
         val gestion = GestionEntity(
@@ -43,12 +48,12 @@ class GestionRepositoryTest {
         coEvery { opportunityDao.update(any()) } just Runs
         coEvery { historialDao.insert(any()) } returns 1
 
-        assertEquals(21L, repository.registrar(gestion, "CONTACTO_REALIZADO"))
+        (repository.registrar(gestion, "CONTACTO_REALIZADO")) shouldBe (21L)
 
         val updated = slot<OpportunityEntity>()
         coVerify { opportunityDao.update(capture(updated)) }
-        assertEquals("CONTACTO_REALIZADO", updated.captured.estado)
-        assertTrue(updated.captured.fechaActualizacion >= oportunidad.fechaActualizacion)
+        (updated.captured.estado) shouldBe ("CONTACTO_REALIZADO")
+        (updated.captured.fechaActualizacion >= oportunidad.fechaActualizacion) shouldBe true
         coVerify {
             historialDao.insert(match {
                 it.oportunidadId == 2L &&
@@ -61,7 +66,6 @@ class GestionRepositoryTest {
         }
     }
 
-    @Test
     fun oportunidadInexistenteNoRegistraGestion() = runBlocking {
         val gestion = GestionEntity(
             oportunidadId = 99,
@@ -74,12 +78,11 @@ class GestionRepositoryTest {
         val error = runCatching { repository.registrar(gestion, "CONTACTO_REALIZADO") }
             .exceptionOrNull()
 
-        assertEquals("La oportunidad ya no está disponible.", error?.message)
+        (error?.message) shouldBe ("La oportunidad ya no está disponible.")
         coVerify(exactly = 0) { gestionDao.insert(any()) }
         coVerify(exactly = 0) { historialDao.insert(any()) }
     }
 
-    @Test
     fun flujosYConsultaDeOportunidadSeDelegan() = runBlocking {
         val oportunidad = oportunidad()
         val gestiones = listOf(
@@ -88,8 +91,8 @@ class GestionRepositoryTest {
         io.mockk.every { gestionDao.observePorOportunidad(2) } returns kotlinx.coroutines.flow.flowOf(gestiones)
         coEvery { opportunityDao.buscarPorId(2) } returns oportunidad
 
-        assertEquals(gestiones, repository.observePorOportunidad(2).single())
-        assertEquals(oportunidad, repository.buscarOportunidad(2))
+        (repository.observePorOportunidad(2).single()) shouldBe (gestiones)
+        (repository.buscarOportunidad(2)) shouldBe (oportunidad)
     }
 
     private fun oportunidad(estado: String = "EVENTO_IDENTIFICADO") = OpportunityEntity(

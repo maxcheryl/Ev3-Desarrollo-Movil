@@ -1,5 +1,12 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+
 import cl.duocuc.evaluacion2.data.local.GestionEntity
 import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
@@ -22,19 +29,24 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class GestionViewModelTest {
+class GestionViewModelTest : StringSpec({
+    val dispatcher = StandardTestDispatcher()
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    beforeSpec { Dispatchers.setMain(dispatcher) }
+    afterSpec { Dispatchers.resetMain() }
 
-    @Test
+    "Seleccionar oportunidad reinicia formulario y actualiza flujos" { GestionViewModelTestCases().seleccionarOportunidadReiniciaFormularioYActualizaFlujos() }
+    "Begin nueva valida sesion perfil oportunidad y responsable" { GestionViewModelTestCases().beginNuevaValidaSesionPerfilOportunidadYResponsable() }
+    "Guardar valida permisos y campos antes de registrar" { GestionViewModelTestCases().guardarValidaPermisosYCamposAntesDeRegistrar() }
+    "Guardar recorta datos notifica y muestra error de duplicado" { GestionViewModelTestCases().guardarRecortaDatosNotificaYMuestraErrorDeDuplicado() }
+})
+
+@OptIn(ExperimentalCoroutinesApi::class)
+private class GestionViewModelTestCases {
+
+
     fun seleccionarOportunidadReiniciaFormularioYActualizaFlujos() = runTest {
         val repository = mockk<GestionRepository>(relaxed = true)
         val historialRepository = mockk<HistorialRepository>()
@@ -54,18 +66,17 @@ class GestionViewModelTest {
         collectWhileSubscribed(viewModel.esEjecutivo)
         advanceUntilIdle()
 
-        assertTrue(viewModel.esEjecutivo.value)
-        assertEquals(mapOf(1L to "Ejecutivo"), viewModel.usuarios.value)
+        (viewModel.esEjecutivo.value) shouldBe true
+        (viewModel.usuarios.value) shouldBe (mapOf(1L to "Ejecutivo"))
         viewModel.onDescripcionChange("valor que se debe borrar")
         viewModel.seleccionarOportunidad(3)
         advanceUntilIdle()
 
-        assertEquals(3L, viewModel.historial.value.single().oportunidadId)
-        assertEquals(3L, viewModel.gestiones.value.single().oportunidadId)
-        assertEquals("", viewModel.editor.value.form.descripcion)
+        (viewModel.historial.value.single().oportunidadId) shouldBe (3L)
+        (viewModel.gestiones.value.single().oportunidadId) shouldBe (3L)
+        (viewModel.editor.value.form.descripcion) shouldBe ("")
     }
 
-    @Test
     fun beginNuevaValidaSesionPerfilOportunidadYResponsable() = runTest {
         val repository = mockk<GestionRepository>(relaxed = true)
         val history = mockk<HistorialRepository>()
@@ -77,37 +88,36 @@ class GestionViewModelTest {
         val noSession = viewModel(repository, history, users, SessionManager())
         noSession.seleccionarOportunidad(2)
         noSession.beginNueva()
-        assertTrue(noSession.editor.value.mensajeError.orEmpty().contains("sesión"))
+        (noSession.editor.value.mensajeError.orEmpty().contains("sesión")) shouldBe true
 
         val supervisorSession = SessionManager().apply { iniciar(supervisor()) }
         val supervisorVm = viewModel(repository, history, users, supervisorSession)
         supervisorVm.seleccionarOportunidad(2)
         supervisorVm.beginNueva()
-        assertTrue(supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo"))
+        (supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo")) shouldBe true
 
         val executiveSession = SessionManager().apply { iniciar(ejecutivo()) }
         val executiveVm = viewModel(repository, history, users, executiveSession)
         executiveVm.beginNueva()
-        assertTrue(executiveVm.editor.value.mensajeError.orEmpty().contains("oportunidad"))
+        (executiveVm.editor.value.mensajeError.orEmpty().contains("oportunidad")) shouldBe true
 
         executiveVm.seleccionarOportunidad(2)
         coEvery { repository.buscarOportunidad(2) } returns null
         executiveVm.beginNueva()
         advanceUntilIdle()
-        assertTrue(executiveVm.editor.value.mensajeError.orEmpty().contains("ya no está"))
+        (executiveVm.editor.value.mensajeError.orEmpty().contains("ya no está")) shouldBe true
 
         coEvery { repository.buscarOportunidad(2) } returns oportunidad(responsable = 5)
         executiveVm.beginNueva()
         advanceUntilIdle()
-        assertTrue(executiveVm.editor.value.mensajeError.orEmpty().contains("permiso"))
+        (executiveVm.editor.value.mensajeError.orEmpty().contains("permiso")) shouldBe true
 
         coEvery { repository.buscarOportunidad(2) } returns oportunidad(responsable = 1)
         executiveVm.beginNueva()
         advanceUntilIdle()
-        assertEquals(EstadoGestion.CONTACTO_PENDIENTE.name, executiveVm.editor.value.form.estado)
+        (executiveVm.editor.value.form.estado) shouldBe (EstadoGestion.CONTACTO_PENDIENTE.name)
     }
 
-    @Test
     fun guardarValidaPermisosYCamposAntesDeRegistrar() = runTest {
         val repository = mockk<GestionRepository>(relaxed = true)
         val history = mockk<HistorialRepository>()
@@ -119,7 +129,7 @@ class GestionViewModelTest {
         val noSession = viewModel(repository, history, users, SessionManager())
         noSession.seleccionarOportunidad(2)
         noSession.guardar {}
-        assertTrue(noSession.editor.value.mensajeError.orEmpty().contains("sesión"))
+        (noSession.editor.value.mensajeError.orEmpty().contains("sesión")) shouldBe true
 
         val supervisorVm = viewModel(
             repository,
@@ -129,7 +139,7 @@ class GestionViewModelTest {
         )
         supervisorVm.seleccionarOportunidad(2)
         supervisorVm.guardar {}
-        assertTrue(supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo"))
+        (supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo")) shouldBe true
 
         val executiveVm = viewModel(
             repository,
@@ -138,14 +148,13 @@ class GestionViewModelTest {
             SessionManager().apply { iniciar(ejecutivo()) }
         )
         executiveVm.guardar {}
-        assertTrue(executiveVm.editor.value.mensajeError.orEmpty().contains("oportunidad"))
+        (executiveVm.editor.value.mensajeError.orEmpty().contains("oportunidad")) shouldBe true
         executiveVm.seleccionarOportunidad(2)
         executiveVm.guardar {}
-        assertTrue(executiveVm.editor.value.errores.hayErrores)
+        (executiveVm.editor.value.errores.hayErrores) shouldBe true
         coVerify(exactly = 0) { repository.registrar(any(), any()) }
     }
 
-    @Test
     fun guardarRecortaDatosNotificaYMuestraErrorDeDuplicado() = runTest {
         val repository = mockk<GestionRepository>(relaxed = true)
         val history = mockk<HistorialRepository>()
@@ -174,12 +183,12 @@ class GestionViewModelTest {
 
         val captured = slot<GestionEntity>()
         coVerify { repository.registrar(capture(captured), EstadoGestion.CONTACTO_REALIZADO.name) }
-        assertEquals("Llamada realizada", captured.captured.descripcion)
-        assertEquals("Se presentó propuesta", captured.captured.resultado)
-        assertEquals("Enviar correo", captured.captured.proximaAccion)
-        assertEquals(1L, captured.captured.usuarioId)
-        assertTrue(saved)
-        assertEquals("", viewModel.editor.value.form.descripcion)
+        (captured.captured.descripcion) shouldBe ("Llamada realizada")
+        (captured.captured.resultado) shouldBe ("Se presentó propuesta")
+        (captured.captured.proximaAccion) shouldBe ("Enviar correo")
+        (captured.captured.usuarioId) shouldBe (1L)
+        (saved) shouldBe true
+        (viewModel.editor.value.form.descripcion) shouldBe ("")
 
         coEvery { repository.registrar(any(), any()) } throws IllegalStateException("duplicado")
         viewModel.onTipoChange(TipoGestion.GESTION.name)
@@ -187,8 +196,8 @@ class GestionViewModelTest {
         viewModel.onDescripcionChange("Seguimiento")
         viewModel.guardar {}
         advanceUntilIdle()
-        assertTrue(viewModel.editor.value.mensajeError.orEmpty().contains("duplicado"))
-        assertFalse(viewModel.editor.value.guardando)
+        (viewModel.editor.value.mensajeError.orEmpty().contains("duplicado")) shouldBe true
+        (viewModel.editor.value.guardando) shouldBe false
     }
 
     private fun viewModel(

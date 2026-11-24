@@ -1,5 +1,9 @@
 package cl.duocuc.evaluacion2
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+
 import cl.duocuc.evaluacion2.data.model.TipoOrganizacion
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoFormState
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoFormState
@@ -7,31 +11,31 @@ import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionFormState
 import cl.duocuc.evaluacion2.validation.ContactoValidator
 import cl.duocuc.evaluacion2.validation.EventoValidator
 import cl.duocuc.evaluacion2.validation.OrganizacionValidator
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-class CatalogoValidatorsTest {
+class CatalogoValidatorsTest : StringSpec({
+    "Organizacion valida y campos invalidos" { CatalogoValidatorsTestCases().organizacionValidaYCamposInvalidos() }
+    "Contacto valida correo telefono y organizacion" { CatalogoValidatorsTestCases().contactoValidaCorreoTelefonoYOrganizacion() }
+    "Evento exige fecha comuna y organizacion" { CatalogoValidatorsTestCases().eventoExigeFechaComunaYOrganizacion() }
+})
 
-    @Test
+private class CatalogoValidatorsTestCases {
+
     fun organizacionValidaYCamposInvalidos() {
         val valid = OrganizacionFormState(
             nombre = "Agencia Max",
             tipo = TipoOrganizacion.values().first().name,
             comuna = "Santiago"
         )
-        assertFalse(OrganizacionValidator.validar(valid).hayErrores)
+        (OrganizacionValidator.validar(valid).hayErrores) shouldBe false
 
         val invalid = OrganizacionValidator.validar(
             valid.copy(nombre = " A ", tipo = "NO_EXISTE", comuna = "")
         )
-        assertNotNull(invalid.nombre)
-        assertNotNull(invalid.tipo)
-        assertNotNull(invalid.comuna)
+        (invalid.nombre) shouldNotBe null
+        (invalid.tipo) shouldNotBe null
+        (invalid.comuna) shouldNotBe null
     }
 
-    @Test
     fun contactoValidaCorreoTelefonoYOrganizacion() {
         val valid = ContactoFormState(
             nombre = "Ana Pérez",
@@ -40,7 +44,7 @@ class CatalogoValidatorsTest {
             correo = "ana@example.com",
             telefono = "56912345678"
         )
-        assertFalse(ContactoValidator.validar(valid).hayErrores)
+        (ContactoValidator.validar(valid).hayErrores) shouldBe false
 
         val invalid = ContactoValidator.validar(
             valid.copy(
@@ -51,14 +55,13 @@ class CatalogoValidatorsTest {
                 telefono = "123"
             )
         )
-        assertNotNull(invalid.nombre)
-        assertNotNull(invalid.organizacionId)
-        assertNotNull(invalid.cargo)
-        assertNotNull(invalid.correo)
-        assertNotNull(invalid.telefono)
+        (invalid.nombre) shouldNotBe null
+        (invalid.organizacionId) shouldNotBe null
+        (invalid.cargo) shouldNotBe null
+        (invalid.correo) shouldNotBe null
+        (invalid.telefono) shouldNotBe null
     }
 
-    @Test
     fun eventoExigeFechaComunaYOrganizacion() {
         val valid = EventoFormState(
             nombre = "Feria de bienestar",
@@ -66,15 +69,15 @@ class CatalogoValidatorsTest {
             comuna = "Santiago",
             organizacionId = 3L
         )
-        assertFalse(EventoValidator.validar(valid).hayErrores)
+        (EventoValidator.validar(valid).hayErrores) shouldBe false
 
         val invalid = EventoValidator.validar(
             valid.copy(nombre = "X", fecha = null, comuna = "", organizacionId = null)
         )
-        assertTrue(invalid.hayErrores)
-        assertNotNull(invalid.nombre)
-        assertNotNull(invalid.fecha)
-        assertNotNull(invalid.comuna)
-        assertNotNull(invalid.organizacionId)
+        (invalid.hayErrores) shouldBe true
+        (invalid.nombre) shouldNotBe null
+        (invalid.fecha) shouldNotBe null
+        (invalid.comuna) shouldNotBe null
+        (invalid.organizacionId) shouldNotBe null
     }
 }
