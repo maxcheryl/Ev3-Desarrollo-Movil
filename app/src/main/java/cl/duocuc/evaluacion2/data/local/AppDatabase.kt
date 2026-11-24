@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvidenciaEntity::class,
         ResultadoEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,8 +44,7 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instance: AppDatabase? = null
 
-        // En una instalación nueva Room crea las tablas y este callback
-        // inserta los usuarios base; en una actualización los inserta la migración.
+        // Room vuelve a crear las tablas y este callback inserta los usuarios base.
         private val seedCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
@@ -62,12 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "max.db"
                 )
-                    .addMigrations(
-                        MIGRATION_1_2,
-                        MIGRATION_2_3,
-                        MIGRATION_3_4,
-                        MIGRATION_4_5
-                    )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .addCallback(seedCallback)
                     .build()
                     .also { instance = it }
