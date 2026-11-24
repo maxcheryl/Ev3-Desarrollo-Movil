@@ -22,7 +22,7 @@ private class CatalogoValidatorsTestCases {
 
     fun organizacionValidaYCamposInvalidos() {
         val valid = OrganizacionFormState(
-            nombre = "Agencia Max",
+            nombre = "Agencia Atenas",
             tipo = TipoOrganizacion.values().first().name,
             comuna = "Santiago",
             sitioWeb = "https://agenciamax.cl"

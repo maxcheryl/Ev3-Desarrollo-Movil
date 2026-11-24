@@ -1,6 +1,6 @@
-# Agencia Max - Gestión de oportunidades
+# Agencia Atenas - Gestión de oportunidades
 
-Aplicación móvil desarrollada en **Kotlin y Jetpack Compose** para la gestión de oportunidades corporativas y activaciones de la ficticia Agencia Max.
+Aplicación móvil desarrollada en **Kotlin y Jetpack Compose** para la gestión de oportunidades corporativas y activaciones de la ficticia Agencia Atenas.
 
 El proyecto corresponde a la Evaluación Parcial 2 de la asignatura **DSY1105 - Desarrollo de Aplicaciones Móviles** y busca aplicar los contenidos del curso mediante una aplicación funcional, con una interfaz intuitiva, validaciones y acceso a recursos del dispositivo.
 
@@ -12,7 +12,7 @@ El proyecto corresponde a la Evaluación Parcial 2 de la asignatura **DSY1105 - 
 
 ## Sobre el proyecto
 
-Agencia Max necesita organizar sus oportunidades de negocio, como eventos corporativos, ferias y jornadas de beneficios. La aplicación permite registrar estas oportunidades, consultar su información y actualizar su estado de gestión.
+Agencia Atenas necesita organizar sus oportunidades de negocio, como eventos corporativos, ferias y jornadas de beneficios. La aplicación permite registrar estas oportunidades, consultar su información y actualizar su estado de gestión.
 
 También incorpora el escaneo de códigos QR mediante la cámara y una función para consultar la ubicación del dispositivo. Se trata de una demostración académica que utiliza datos ficticios y no se conecta con sistemas reales.
 
@@ -35,7 +35,7 @@ También incorpora el escaneo de códigos QR mediante la cámara y una función 
 
 Para ingresar a la aplicación:
 
-- **Correo:** `dali.morales@max.com`
+- **Correo:** `dali.morales@at.com`
 - **Contraseña:** `dali123`
 
 ## Tecnologías utilizadas

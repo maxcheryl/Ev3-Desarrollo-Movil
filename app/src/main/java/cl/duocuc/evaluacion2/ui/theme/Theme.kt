@@ -23,7 +23,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 /**
- * Tema corporativa de Agencia Max.
+ * Tema corporativo de Agencia Atenas.
  * Se mantiene la paleta teal fija en claro y oscuro; no se usa
  * el color dinámico de Android 12 para preservar la identidad visual.
  */
