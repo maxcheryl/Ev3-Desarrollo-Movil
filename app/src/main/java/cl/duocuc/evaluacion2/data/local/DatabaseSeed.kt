@@ -7,12 +7,12 @@ object DatabaseSeed {
 
     const val USUARIO_DALI_ID = 1L
     const val USUARIO_DALI_NOMBRE = "Dalí Morales"
-    const val USUARIO_DALI_CORREO = "dali.morales@max.com"
+    const val USUARIO_DALI_CORREO = "dali.morales@at.com"
     const val USUARIO_DALI_CLAVE = "dali123"
 
     const val USUARIO_MAXINE_ID = 2L
     const val USUARIO_MAXINE_NOMBRE = "Maxine Moreno"
-    const val USUARIO_MAXINE_CORREO = "maxine.moreno@max.com"
+    const val USUARIO_MAXINE_CORREO = "maxine.moreno@at.com"
     const val USUARIO_MAXINE_CLAVE = "maxine123"
 
     fun insertarUsuarios(db: SupportSQLiteDatabase) {

@@ -2,7 +2,7 @@ package cl.duocuc.evaluacion2.qr
 
 /**
  * Reglas de validación de los códigos QR de la aplicación.
- * Un código QR es válido para Agencia Max únicamente si comienza
+ * Un código QR es válido para Agencia Atenas únicamente si comienza
  * con el prefijo «MAX:» seguido de un código identificador.
  * Ejemplo válido: MAX:OP-001
  */

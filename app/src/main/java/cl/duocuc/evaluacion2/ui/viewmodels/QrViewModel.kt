@@ -17,7 +17,7 @@ data class EscanearQrUiState(
 
 /**
  * ViewModel del escáner QR: valida el contenido detectado según las
- * reglas de Agencia Max y controla el ciclo escanear → resultado.
+ * reglas de Agencia Atenas y controla el ciclo escanear → resultado.
  */
 class QrViewModel : ViewModel() {
 
@@ -37,7 +37,7 @@ class QrViewModel : ViewModel() {
             mensaje = if (valido) {
                 null
             } else {
-                "El código QR escaneado no pertenece a Agencia Max."
+                "El código QR escaneado no pertenece a Agencia Atenas."
             }
         )
     }

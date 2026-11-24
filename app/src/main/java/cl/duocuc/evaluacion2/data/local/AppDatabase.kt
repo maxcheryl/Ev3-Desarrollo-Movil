@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvidenciaEntity::class,
         ResultadoEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -62,7 +62,12 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "max.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5
+                    )
                     .addCallback(seedCallback)
                     .build()
                     .also { instance = it }

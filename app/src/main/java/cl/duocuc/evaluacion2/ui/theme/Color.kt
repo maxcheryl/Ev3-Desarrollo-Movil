@@ -2,7 +2,7 @@ package cl.duocuc.evaluacion2.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta corporativa "Agencia Max" (tonos teal/slate/amber)
+// Paleta corporativa "Agencia Atenas" (tonos teal/slate/amber)
 val MaxTealLight = Color(0xFF80D5CC)
 val MaxSlateLight = Color(0xFFB8CCC8)
 val MaxAmberLight = Color(0xFFFFB95C)

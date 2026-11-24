@@ -56,11 +56,11 @@ private class CatalogViewModelTestCases {
 
         viewModel.beginEditar(3)
         (viewModel.editor.value.form.nombre) shouldBe (existing.nombre)
-        viewModel.onNombreChange("  Agencia Max Editada  ")
+        viewModel.onNombreChange("  Agencia Atenas Editada  ")
         viewModel.guardar {}
         advanceUntilIdle()
         coVerify {
-            repository.guardar(match { it.id == 3L && it.nombre == "Agencia Max Editada" })
+            repository.guardar(match { it.id == 3L && it.nombre == "Agencia Atenas Editada" })
         }
         viewModel.beginEditar(999)
         (viewModel.editor.value.mensajeError.orEmpty().contains("No se encontró")) shouldBe true
@@ -70,7 +70,7 @@ private class CatalogViewModelTestCases {
         (viewModel.editor.value.errores.hayErrores) shouldBe true
         coVerify(exactly = 1) { repository.guardar(any()) }
 
-        viewModel.onNombreChange("  Agencia Max  ")
+        viewModel.onNombreChange("  Agencia Atenas  ")
         viewModel.onTipoChange(TipoOrganizacion.values().first().name)
         viewModel.onComunaChange("  Santiago  ")
         viewModel.onSitioWebChange("  https://example.com  ")
@@ -81,7 +81,7 @@ private class CatalogViewModelTestCases {
 
         val saved = mutableListOf<OrganizacionEntity>()
         coVerify(exactly = 2) { repository.guardar(capture(saved)) }
-        (saved[1].nombre) shouldBe ("Agencia Max")
+        (saved[1].nombre) shouldBe ("Agencia Atenas")
         (saved[1].comuna) shouldBe ("Santiago")
         (saved[1].sitioWeb) shouldBe ("https://example.com")
         (saved[1].observaciones) shouldBe ("Nota")
@@ -90,7 +90,7 @@ private class CatalogViewModelTestCases {
 
         coEvery { repository.guardar(any()) } throws IllegalStateException("UNIQUE constraint")
         viewModel.beginNueva()
-        viewModel.onNombreChange("Agencia Max")
+        viewModel.onNombreChange("Agencia Atenas")
         viewModel.onTipoChange(TipoOrganizacion.values().first().name)
         viewModel.onComunaChange("Santiago")
         viewModel.guardar {}

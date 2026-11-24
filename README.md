@@ -1,7 +1,3 @@
-# Agencia Atenas - Gestión de oportunidades
-
-## Nombre del proyecto
-
 **Agencia Atenas - Gestión de oportunidades**
 
 ## Integrantes y equipo
@@ -19,8 +15,6 @@ El proyecto corresponde a la Evaluación 3 de la asignatura **DSY1105 - Desarrol
 ## Sobre el proyecto
 
 Agencia Atenas necesita organizar sus oportunidades de negocio, como eventos corporativos, ferias y jornadas de beneficios. El propósito del proyecto es entregar una aplicación funcional que permita registrar y dar seguimiento a esas oportunidades: desde su identificación y las gestiones comerciales asociadas, hasta la activación con evidencias y resultados, manteniendo un historial de cada cambio.
-
-La aplicación incorpora escaneo de códigos QR mediante la cámara, consulta de la ubicación del dispositivo y el consumo de una API externa de prueba. Los datos se guardan localmente con Room y los registros de demostración son ficticios.
 
 ## Funcionalidades
 
@@ -59,7 +53,6 @@ La pantalla indica explícitamente que son datos ficticios de la API y no se gua
 | Ejecutivo comercial | `dali.morales@at.com` | `dali123` |
 | Supervisor comercial | `maxine.moreno@at.com` | `maxine123` |
 
-El **Ejecutivo comercial** crea y gestiona sus oportunidades, registra gestiones y activaciones. El **Supervisor comercial** visualiza todas las oportunidades y sus antecedentes.
 
 ## Tecnologías utilizadas
 
