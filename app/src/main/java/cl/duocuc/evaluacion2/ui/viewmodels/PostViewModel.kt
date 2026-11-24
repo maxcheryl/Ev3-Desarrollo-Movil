@@ -29,6 +29,8 @@ enum class CampoPublicacion {
 data class PostUiState(
     val cargando: Boolean = true,
     val publicaciones: List<PostResponse> = emptyList(),
+    // Los POST de JSONPlaceholder no se guardan en el servidor.
+    val idsCreadosConPost: Set<Int> = emptySet(),
     val mensajeError: String? = null,
     val mutacionEnCurso: Boolean = false,
     val mensajeMutacion: String? = null,
@@ -129,7 +131,8 @@ class PostViewModel(
             _uiState.update { estado ->
                 estado.copy(
                     publicaciones = listOf(creada) +
-                        estado.publicaciones.filterNot { it.id == creada.id }
+                        estado.publicaciones.filterNot { it.id == creada.id },
+                    idsCreadosConPost = estado.idsCreadosConPost + creada.id
                 )
             }
         }
@@ -196,7 +199,8 @@ class PostViewModel(
             _uiState.update { estado ->
                 estado.copy(
                     publicaciones = listOf(creado) +
-                        estado.publicaciones.filterNot { it.id == creado.id }
+                        estado.publicaciones.filterNot { it.id == creado.id },
+                    idsCreadosConPost = estado.idsCreadosConPost + creado.id
                 )
             }
         }
@@ -242,16 +246,31 @@ class PostViewModel(
 
     fun actualizarPublicacion(publicacion: PostResponse, titulo: String, contenido: String) {
         val solicitud = crearSolicitud(titulo, contenido, publicacion.userId) ?: return
-        ejecutarMutacion("PUT exitoso. JSONPlaceholder no conserva los cambios.") {
-            val respuesta = repository.actualizarPublicacion(publicacion.id, solicitud)
-            val actualizada = respuesta.copy(
-                eventId = respuesta.eventId ?: publicacion.eventId,
-                eventName = publicacion.eventName?.let { titulo.trim() }
-                    ?: respuesta.eventName,
-                date = respuesta.date ?: publicacion.date,
-                location = respuesta.location ?: publicacion.location,
-                organization = respuesta.organization ?: publicacion.organization
-            )
+        val creadaConPost = publicacion.id in _uiState.value.idsCreadosConPost
+        val mensajeExito = if (creadaConPost) {
+            "Cambios aplicados. JSONPlaceholder no conserva los cambios."
+        } else {
+            "PUT exitoso. JSONPlaceholder no conserva los cambios."
+        }
+        ejecutarMutacion(mensajeExito) {
+            // Los registros creados con POST solo se pueden cambiar en esta pantalla.
+            val actualizada = if (creadaConPost) {
+                publicacion.copy(
+                    title = solicitud.title,
+                    body = solicitud.body,
+                    eventName = publicacion.eventName?.let { solicitud.title }
+                )
+            } else {
+                val respuesta = repository.actualizarPublicacion(publicacion.id, solicitud)
+                respuesta.copy(
+                    eventId = respuesta.eventId ?: publicacion.eventId,
+                    eventName = publicacion.eventName?.let { titulo.trim() }
+                        ?: respuesta.eventName,
+                    date = respuesta.date ?: publicacion.date,
+                    location = respuesta.location ?: publicacion.location,
+                    organization = respuesta.organization ?: publicacion.organization
+                )
+            }
             _uiState.update { estado ->
                 estado.copy(
                     publicaciones = estado.publicaciones.map {

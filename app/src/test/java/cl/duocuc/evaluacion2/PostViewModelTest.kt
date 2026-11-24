@@ -39,6 +39,7 @@ class PostViewModelTest : StringSpec({
     "Informa campos obligatorios al crear publicaciones" { PostViewModelTestCases().informaCamposObligatoriosAlCrearPublicaciones() }
     "Crea evento con sus campos y valida su identificador" { PostViewModelTestCases().creaEventoConSusCamposYValidaSuIdentificador() }
     "Informa errores HTTP al ejecutar mutaciones" { PostViewModelTestCases().informaErroresHttpAlEjecutarMutaciones() }
+    "Edita en memoria una publicacion creada con POST" { PostViewModelTestCases().editaEnMemoriaPublicacionCreadaConPost() }
 })
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -218,5 +219,26 @@ private class PostViewModelTestCases {
         (viewModel.uiState.value.mutacionFallida) shouldBe true
         (viewModel.uiState.value.mutacionEnCurso) shouldBe false
         (viewModel.uiState.value.mensajeMutacion.orEmpty().contains("HTTP 503")) shouldBe true
+    }
+
+    fun editaEnMemoriaPublicacionCreadaConPost() = runTest {
+        val repository = mockk<PostRepository>()
+        val creada = PostResponse(1, 101, "Nueva", "Contenido original")
+        coEvery { repository.obtenerPublicaciones() } returns emptyList()
+        coEvery { repository.crearPublicacion(any()) } returns creada
+
+        val viewModel = PostViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.crearPublicacion("Nueva", "Contenido original")
+        advanceUntilIdle()
+        viewModel.actualizarPublicacion(creada, "Editada", "Contenido actualizado")
+        advanceUntilIdle()
+
+        (viewModel.uiState.value.publicaciones) shouldBe
+            (listOf(creada.copy(title = "Editada", body = "Contenido actualizado")))
+        (viewModel.uiState.value.mensajeMutacion) shouldBe
+            ("Cambios aplicados. JSONPlaceholder no conserva los cambios.")
+        coVerify(exactly = 0) { repository.actualizarPublicacion(any(), any()) }
     }
 }

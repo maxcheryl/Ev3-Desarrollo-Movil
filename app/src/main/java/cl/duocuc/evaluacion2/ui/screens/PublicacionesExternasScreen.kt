@@ -267,6 +267,7 @@ fun PublicacionesExternasScreen(
                         items(uiState.publicaciones, key = PostResponse::id) { publicacion ->
                             TarjetaPublicacion(
                                 publicacion = publicacion,
+                                guardadoLocalmente = publicacion.id in uiState.idsCreadosConPost,
                                 mutacionEnCurso = uiState.mutacionEnCurso,
                                 errores = uiState.erroresPublicacion,
                                 onLimpiarError = viewModel::limpiarErrorPublicacion,
@@ -293,6 +294,7 @@ fun PublicacionesExternasScreen(
 @Composable
 private fun TarjetaPublicacion(
     publicacion: PostResponse,
+    guardadoLocalmente: Boolean,
     mutacionEnCurso: Boolean,
     errores: PublicacionErrores,
     onLimpiarError: (CampoPublicacion) -> Unit,
@@ -376,7 +378,13 @@ private fun TarjetaPublicacion(
                         enabled = !mutacionEnCurso,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Guardar cambios (PUT)")
+                        Text(
+                            if (guardadoLocalmente) {
+                                "Guardar cambios"
+                            } else {
+                                "Guardar cambios (PUT)"
+                            }
+                        )
                     }
                     TextButton(
                         onClick = {
