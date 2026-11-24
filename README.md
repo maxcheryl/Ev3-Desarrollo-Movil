@@ -46,7 +46,7 @@ Base URL: `https://jsonplaceholder.typicode.com/`
 | ------ | -------- | ----------- |
 | `GET` | `https://jsonplaceholder.typicode.com/posts` | Devuelve la lista de publicaciones de prueba al abrir la pantalla «API de prueba» (y al pulsar «Reintentar»). No se almacenan localmente. |
 | `POST` | `https://jsonplaceholder.typicode.com/posts` | Crea un registro desde el formulario «Crear Evento (POST)» con id del evento, nombre, fecha, ubicación y organización. |
-| `PUT` | `https://jsonplaceholder.typicode.com/posts/{id}` | Actualiza el título y el contenido de una publicación desde «Editar» → «Guardar cambios (PUT)». |
+| `PUT` | `https://jsonplaceholder.typicode.com/posts/{id}` | Actualiza el título y el contenido de una publicación existente de JSONPlaceholder. Las publicaciones creadas con `POST` durante la sesión se editan localmente, porque JSONPlaceholder no las guarda. |
 | `DELETE` | `https://jsonplaceholder.typicode.com/posts/{id}` | Elimina una publicación desde «Eliminar» → confirmación «Eliminar (DELETE)». |
 
 Detalles de la integración:
@@ -56,6 +56,24 @@ Detalles de la integración:
 - JSONPlaceholder **simula** los cambios: `POST`, `PUT` y `DELETE` responden con éxito, pero no conservan los datos. La pantalla lo indica explícitamente.
 - Los datos externos no se guardan en Room, por lo que no interfieren con los registros locales de la aplicación.
 - Ante errores HTTP, timeout, sin conexión o JSON inválido, la pantalla muestra un mensaje y permite reintentar.
+
+## APK firmado y llave generada
+
+El APK firmado está disponible para [descarga directa](https://github.com/maxcheryl/Ev3-Desarrollo-Movil/releases/download/v1.0/app-release.apk) en el [GitHub Release v1.0](https://github.com/maxcheryl/Ev3-Desarrollo-Movil/releases/tag/v1.0).
+
+### Evidencia del APK firmado
+
+![Captura del APK firmado generado](docs/evidencias/evidencia-apk.png)
+
+### Evidencia de la llave generada
+
+![Captura del archivo de llave generado](docs/evidencias/evidencia-key.png)
+
+> Por seguridad, el archivo `.jks` no se publica en este repositorio público. La llave debe conservarse de forma privada y entregarse por un canal seguro si se solicita.
+
+## Planificación del proyecto
+
+El tablero de planificación y seguimiento del equipo está disponible en [Trello](https://trello.com/b/XOiFMXCR/desarrollo-movil-ev3).
 
 ## Credenciales de demostración
 
