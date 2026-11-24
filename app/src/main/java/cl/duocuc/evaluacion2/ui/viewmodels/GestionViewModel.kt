@@ -56,7 +56,21 @@ class GestionViewModel(
 
     val esEjecutivo: StateFlow<Boolean> = sessionManager.usuario
         .map { it?.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            sessionManager.actual?.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL
+        )
+
+    val puedeRegistrarSeguimiento: StateFlow<Boolean> = sessionManager.usuario
+        .map {
+            it != null && tienePermisoParaSeguimiento(it.perfil)
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            sessionManager.actual?.perfil?.let(::tienePermisoParaSeguimiento) == true
+        )
 
     private val _editor = MutableStateFlow(GestionEditorUiState())
     val editor: StateFlow<GestionEditorUiState> = _editor.asStateFlow()
@@ -75,9 +89,9 @@ class GestionViewModel(
             )
             return
         }
-        if (usuario.perfil != PerfilUsuario.EJECUTIVO_COMERCIAL) {
+        if (!tienePermisoParaSeguimiento(usuario.perfil)) {
             _editor.value = GestionEditorUiState(
-                mensajeError = "Solo el Ejecutivo comercial puede registrar gestiones."
+                mensajeError = "No tienes permiso para registrar seguimientos."
             )
             return
         }
@@ -99,7 +113,10 @@ class GestionViewModel(
                 }
                 return@launch
             }
-            if (oportunidad.responsableId != usuario.id) {
+            if (
+                usuario.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL &&
+                oportunidad.responsableId != usuario.id
+            ) {
                 _editor.update {
                     it.copy(mensajeError = "No tienes permiso para gestionar esta oportunidad.")
                 }
@@ -137,13 +154,19 @@ class GestionViewModel(
 
     fun onResultadoChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(resultado = valor))
+            it.copy(
+                form = it.form.copy(resultado = valor),
+                errores = it.errores.copy(descripcion = null)
+            )
         }
     }
 
     fun onProximaAccionChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(proximaAccion = valor))
+            it.copy(
+                form = it.form.copy(proximaAccion = valor),
+                errores = it.errores.copy(proximaAccion = null)
+            )
         }
     }
 
@@ -157,25 +180,53 @@ class GestionViewModel(
                         it.form.horaProximaAccion.isBlank() -> "09:00"
                         else -> it.form.horaProximaAccion
                     }
+                ),
+                errores = it.errores.copy(
+                    fechaProximaAccion = null,
+                    horaProximaAccion = null
                 )
             )
         }
     }
 
     fun onFechaGestionChange(valor: Long?) {
-        _editor.update { it.copy(form = it.form.copy(fechaGestion = valor)) }
+        _editor.update {
+            it.copy(
+                form = it.form.copy(fechaGestion = valor),
+                errores = it.errores.copy(
+                    fechaGestion = null,
+                    fechaProximaAccion = null,
+                    horaProximaAccion = null
+                )
+            )
+        }
     }
 
     fun onHoraGestionChange(valor: String) {
-        _editor.update { it.copy(form = it.form.copy(horaGestion = valor)) }
+        _editor.update {
+            it.copy(
+                form = it.form.copy(horaGestion = valor),
+                errores = it.errores.copy(horaGestion = null, horaProximaAccion = null)
+            )
+        }
     }
 
     fun onHoraProximaAccionChange(valor: String) {
-        _editor.update { it.copy(form = it.form.copy(horaProximaAccion = valor)) }
+        _editor.update {
+            it.copy(
+                form = it.form.copy(horaProximaAccion = valor),
+                errores = it.errores.copy(horaProximaAccion = null)
+            )
+        }
     }
 
     fun onObservacionesChange(valor: String) {
-        _editor.update { it.copy(form = it.form.copy(observaciones = valor)) }
+        _editor.update {
+            it.copy(
+                form = it.form.copy(observaciones = valor),
+                errores = it.errores.copy(observaciones = null)
+            )
+        }
     }
 
     fun guardar(onListo: () -> Unit) {
@@ -186,9 +237,9 @@ class GestionViewModel(
             }
             return
         }
-        if (usuario.perfil != PerfilUsuario.EJECUTIVO_COMERCIAL) {
+        if (!tienePermisoParaSeguimiento(usuario.perfil)) {
             _editor.update {
-                it.copy(mensajeError = "Solo el Ejecutivo comercial puede registrar gestiones.")
+                it.copy(mensajeError = "No tienes permiso para registrar seguimientos.")
             }
             return
         }
@@ -223,7 +274,10 @@ class GestionViewModel(
                     }
                     return@launch
                 }
-                if (oportunidad.responsableId != usuario.id) {
+                if (
+                    usuario.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL &&
+                    oportunidad.responsableId != usuario.id
+                ) {
                     _editor.update {
                         it.copy(
                             guardando = false,
@@ -250,7 +304,9 @@ class GestionViewModel(
 
                 repository.registrar(
                     gestion,
-                    actual.form.estado.takeIf(String::isNotBlank)
+                    actual.form.estado
+                        .takeIf(String::isNotBlank)
+                        .takeIf { usuario.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL }
                 )
                 _editor.value = GestionEditorUiState()
                 onListo()
@@ -286,6 +342,10 @@ class GestionViewModel(
         }
         return calendar.timeInMillis
     }
+
+    private fun tienePermisoParaSeguimiento(perfil: PerfilUsuario): Boolean =
+        perfil == PerfilUsuario.EJECUTIVO_COMERCIAL ||
+            perfil == PerfilUsuario.SUPERVISOR_COMERCIAL
 
     companion object {
         fun factory(

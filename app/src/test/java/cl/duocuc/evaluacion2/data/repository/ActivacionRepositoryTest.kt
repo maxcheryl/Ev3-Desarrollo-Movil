@@ -52,7 +52,7 @@ private class ActivacionRepositoryTestCases {
     )
 
     fun guardaNuevaActivacionYActualizaUnaExistenteSinDuplicar() = runBlocking {
-        val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9)
+        val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9, fecha = 123)
         coEvery { opportunityDao.buscarPorId(4) } returns oportunidad()
         coEvery { usuarioDao.buscarPorId(9) } returns usuario()
         coEvery { activacionDao.obtenerPorOportunidad(4) } returnsMany listOf(
@@ -72,7 +72,7 @@ private class ActivacionRepositoryTestCases {
     }
 
     fun guardarActivacionRechazaOportunidadOResponsableInexistente() = runBlocking {
-        val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9)
+        val activacion = ActivacionEntity(oportunidadId = 4, responsableId = 9, fecha = 123)
         coEvery { opportunityDao.buscarPorId(4) } returns null
         (runCatching { repository.guardarActivacion(activacion, 9) }.exceptionOrNull()?.message) shouldBe ("La oportunidad ya no está disponible.")
 
@@ -140,7 +140,8 @@ private class ActivacionRepositoryTestCases {
             observaciones = " Confirmada ",
             impacto = " Alto ",
             nuevoEstado = "ACTIVACION_REALIZADA",
-            usuarioId = 9
+            usuarioId = 9,
+            fechaRealizacion = 900
         )
 
         coVerify {

@@ -39,6 +39,11 @@ class LoginViewModel(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
+    private val patronCorreo = Regex(
+        "^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)+" +
+            "[A-Za-z]{2,}$"
+    )
+
     private val _estado = MutableStateFlow(LoginUiState())
     val estado: StateFlow<LoginUiState> = _estado
 
@@ -67,7 +72,12 @@ class LoginViewModel(
     fun ingresar(onExitoso: () -> Unit) {
         val actual = _estado.value
 
-        val correoError = if (actual.correo.isBlank()) "El correo es obligatorio." else null
+        val correoError = when {
+            actual.correo.isBlank() -> "El correo es obligatorio."
+            actual.correo.trim().length > 254 -> "El correo no puede superar 254 caracteres."
+            !patronCorreo.matches(actual.correo.trim()) -> "Ingresa un correo válido."
+            else -> null
+        }
         val claveError = if (actual.clave.isBlank()) "La contraseña es obligatoria." else null
 
         if (correoError != null || claveError != null) {

@@ -46,9 +46,45 @@ data class ActivacionUiState(
     val inscripciones: String = "0",
     val cargando: Boolean = true,
     val guardando: Boolean = false,
+    val errores: ActivacionErrores = ActivacionErrores(),
     val mensajeError: String? = null,
     val mensajeExito: String? = null
 )
+
+data class ActivacionErrores(
+    val responsable: String? = null,
+    val fecha: String? = null,
+    val espacio: String? = null,
+    val costo: String? = null,
+    val requisitos: String? = null,
+    val observacionesCoordinacion: String? = null,
+    val resultadoFinal: String? = null,
+    val fechaRealizacion: String? = null,
+    val asistentesEstimados: String? = null,
+    val contactosGenerados: String? = null,
+    val personasInteresadas: String? = null,
+    val inscripciones: String? = null,
+    val observaciones: String? = null,
+    val impacto: String? = null
+) {
+    val hayErrores: Boolean
+        get() = listOf(
+            responsable,
+            fecha,
+            espacio,
+            costo,
+            requisitos,
+            observacionesCoordinacion,
+            resultadoFinal,
+            fechaRealizacion,
+            asistentesEstimados,
+            contactosGenerados,
+            personasInteresadas,
+            inscripciones,
+            observaciones,
+            impacto
+        ).any { it != null }
+}
 
 class ActivacionViewModel(
     private val repository: ActivacionRepository,
@@ -140,24 +176,74 @@ class ActivacionViewModel(
         }
     }
 
-    fun onResponsableChange(valor: Long?) = cambiar { it.copy(responsableId = valor) }
-    fun onEspacioChange(valor: String) = cambiar { it.copy(espacio = valor) }
-    fun onFechaChange(valor: Long?) = cambiar { it.copy(fecha = valor) }
-    fun onCostoChange(valor: String) = cambiar { it.copy(costo = valor) }
-    fun onRequisitosChange(valor: String) = cambiar { it.copy(requisitos = valor) }
+    fun onResponsableChange(valor: Long?) = cambiar(
+        transform = { it.copy(responsableId = valor) },
+        limpiarError = { it.copy(responsable = null) }
+    )
+    fun onEspacioChange(valor: String) = cambiar(
+        transform = { it.copy(espacio = valor) },
+        limpiarError = { it.copy(espacio = null) }
+    )
+    fun onFechaChange(valor: Long?) = cambiar(
+        transform = { it.copy(fecha = valor) },
+        limpiarError = { it.copy(fecha = null) }
+    )
+    fun onCostoChange(valor: String) = cambiar(
+        transform = { it.copy(costo = valor) },
+        limpiarError = { it.copy(costo = null) }
+    )
+    fun onRequisitosChange(valor: String) = cambiar(
+        transform = { it.copy(requisitos = valor) },
+        limpiarError = { it.copy(requisitos = null) }
+    )
     fun onObservacionesCoordinacionChange(valor: String) =
-        cambiar { it.copy(observacionesCoordinacion = valor) }
-    fun onResultadoFinalChange(valor: String) = cambiar { it.copy(resultadoFinal = valor) }
-    fun onObservacionesChange(valor: String) = cambiar { it.copy(observaciones = valor) }
-    fun onImpactoChange(valor: String) = cambiar { it.copy(impacto = valor) }
-    fun onFechaRealizacionChange(valor: Long?) = cambiar { it.copy(fechaRealizacion = valor) }
-    fun onAsistentesEstimadosChange(valor: String) =
-        cambiar { it.copy(asistentesEstimados = valor) }
-    fun onContactosGeneradosChange(valor: String) =
-        cambiar { it.copy(contactosGenerados = valor) }
-    fun onPersonasInteresadasChange(valor: String) =
-        cambiar { it.copy(personasInteresadas = valor) }
-    fun onInscripcionesChange(valor: String) = cambiar { it.copy(inscripciones = valor) }
+        cambiar(
+            transform = { it.copy(observacionesCoordinacion = valor) },
+            limpiarError = { it.copy(observacionesCoordinacion = null) }
+        )
+    fun onResultadoFinalChange(valor: String) = cambiar(
+        transform = { it.copy(resultadoFinal = valor) },
+        limpiarError = {
+            it.copy(
+                resultadoFinal = null,
+                fechaRealizacion = if (
+                    valor == EstadoGestion.ACTIVACION_CANCELADA.name
+                ) {
+                    null
+                } else {
+                    it.fechaRealizacion
+                }
+            )
+        }
+    )
+    fun onObservacionesChange(valor: String) = cambiar(
+        transform = { it.copy(observaciones = valor) },
+        limpiarError = { it.copy(observaciones = null) }
+    )
+    fun onImpactoChange(valor: String) = cambiar(
+        transform = { it.copy(impacto = valor) },
+        limpiarError = { it.copy(impacto = null) }
+    )
+    fun onFechaRealizacionChange(valor: Long?) = cambiar(
+        transform = { it.copy(fechaRealizacion = valor) },
+        limpiarError = { it.copy(fechaRealizacion = null) }
+    )
+    fun onAsistentesEstimadosChange(valor: String) = cambiar(
+        transform = { it.copy(asistentesEstimados = valor) },
+        limpiarError = { it.copy(asistentesEstimados = null) }
+    )
+    fun onContactosGeneradosChange(valor: String) = cambiar(
+        transform = { it.copy(contactosGenerados = valor) },
+        limpiarError = { it.copy(contactosGenerados = null) }
+    )
+    fun onPersonasInteresadasChange(valor: String) = cambiar(
+        transform = { it.copy(personasInteresadas = valor) },
+        limpiarError = { it.copy(personasInteresadas = null) }
+    )
+    fun onInscripcionesChange(valor: String) = cambiar(
+        transform = { it.copy(inscripciones = valor) },
+        limpiarError = { it.copy(inscripciones = null) }
+    )
 
     fun agregarEvidencia(tipo: String, nombre: String, uri: String) {
         val state = _uiState.value
@@ -205,21 +291,49 @@ class ActivacionViewModel(
             informarError("La sesión no está activa. Inicia sesión nuevamente.")
             return
         }
-        if (responsableId == null || state.usuarios.none { it.id == responsableId }) {
-            informarError("Selecciona un responsable disponible.")
-            return
-        }
-        if (state.costo.isNotBlank() && (costo == null || !costo.isFinite() || costo < 0)) {
-            informarError("El costo debe ser un número igual o mayor que cero.")
-            return
-        }
-        if (state.guardando) return
         if (!state.oportunidadConfirmada) {
             informarError("La oportunidad debe estar confirmada antes de coordinar la activación.")
             return
         }
+        if (state.guardando) return
 
-        cambiar { it.copy(guardando = true, mensajeError = null, mensajeExito = null) }
+        val errores = ActivacionErrores(
+            responsable = if (responsableId == null || state.usuarios.none { it.id == responsableId }) {
+                "Selecciona un responsable disponible."
+            } else {
+                null
+            },
+            fecha = if (state.fecha == null || state.fecha <= 0L) {
+                "Selecciona la fecha de realización."
+            } else {
+                null
+            },
+            espacio = validarLongitud(state.espacio, "El espacio", 200),
+            costo = if (
+                state.costo.isNotBlank() &&
+                (costo == null || !costo.isFinite() || costo < 0)
+            ) {
+                "Ingresa un costo numérico igual o mayor que cero."
+            } else {
+                null
+            },
+            requisitos = validarLongitud(state.requisitos, "Los requisitos", 2000),
+            observacionesCoordinacion = validarLongitud(
+                state.observacionesCoordinacion,
+                "Las observaciones",
+                2000
+            )
+        )
+        if (errores.hayErrores) {
+            informarError("Corrige los campos marcados antes de guardar la coordinación.", errores)
+            return
+        }
+
+        cambiar(
+            transform = {
+                it.copy(guardando = true, mensajeError = null, mensajeExito = null)
+            }
+        )
         viewModelScope.launch {
             try {
                 val id = repository.guardarActivacion(
@@ -227,7 +341,7 @@ class ActivacionViewModel(
                         id = state.activacionId ?: 0,
                         oportunidadId = state.oportunidadId,
                         participacionConfirmada = state.participacionConfirmada,
-                        responsableId = responsableId,
+                        responsableId = checkNotNull(responsableId),
                         espacio = state.espacio.trim(),
                         fecha = state.fecha,
                         costo = costo,
@@ -272,25 +386,57 @@ class ActivacionViewModel(
         if (state.resultadoFinal != EstadoGestion.ACTIVACION_REALIZADA.name &&
             state.resultadoFinal != EstadoGestion.ACTIVACION_CANCELADA.name
         ) {
-            informarError("Selecciona el resultado final de la oportunidad.")
+            informarError(
+                "Selecciona el resultado final de la oportunidad.",
+                ActivacionErrores(resultadoFinal = "Selecciona un resultado final válido.")
+            )
             return
         }
-        val asistentesEstimados = state.asistentesEstimados.toIntOrNull()
-        val contactosGenerados = cantidadOpcional(state.contactosGenerados)
-        val personasInteresadas = cantidadOpcional(state.personasInteresadas)
-        val inscripciones = cantidadOpcional(state.inscripciones)
-        if (state.asistentesEstimados.isNotBlank() &&
-            (asistentesEstimados == null || asistentesEstimados < 0) ||
-            contactosGenerados == null || contactosGenerados < 0 ||
-            personasInteresadas == null || personasInteresadas < 0 ||
-            inscripciones == null || inscripciones < 0
-        ) {
-            informarError("Las cantidades deben ser números iguales o mayores que cero.")
-            return
-        }
+        val asistentesEstimados = state.asistentesEstimados.trim()
+            .takeIf(String::isNotEmpty)
+            ?.toIntOrNull()
         if (state.guardando) return
+        val requiereFecha = state.resultadoFinal == EstadoGestion.ACTIVACION_REALIZADA.name
+        val errores = ActivacionErrores(
+            fechaRealizacion = when {
+                requiereFecha && (state.fechaRealizacion == null || state.fechaRealizacion <= 0L) ->
+                    "Selecciona la fecha de realización."
+                state.fechaRealizacion != null && state.fechaRealizacion <= 0L ->
+                    "Selecciona una fecha válida."
+                else -> null
+            },
+            asistentesEstimados = validarCantidad(
+                state.asistentesEstimados,
+                "Ingresa un número entero igual o mayor que cero."
+            ),
+            contactosGenerados = validarCantidad(
+                state.contactosGenerados,
+                "Ingresa un número entero igual o mayor que cero."
+            ),
+            personasInteresadas = validarCantidad(
+                state.personasInteresadas,
+                "Ingresa un número entero igual o mayor que cero."
+            ),
+            inscripciones = validarCantidad(
+                state.inscripciones,
+                "Ingresa un número entero igual o mayor que cero."
+            ),
+            observaciones = validarLongitud(state.observaciones, "Las observaciones", 2000),
+            impacto = validarLongitud(state.impacto, "La evaluación", 2000)
+        )
+        if (errores.hayErrores) {
+            informarError("Corrige los campos marcados antes de guardar el resultado.", errores)
+            return
+        }
+        val cantidadContactos = cantidadOpcional(state.contactosGenerados) ?: 0
+        val cantidadInteresados = cantidadOpcional(state.personasInteresadas) ?: 0
+        val cantidadInscripciones = cantidadOpcional(state.inscripciones) ?: 0
 
-        cambiar { it.copy(guardando = true, mensajeError = null, mensajeExito = null) }
+        cambiar(
+            transform = {
+                it.copy(guardando = true, mensajeError = null, mensajeExito = null)
+            }
+        )
         viewModelScope.launch {
             try {
                 repository.guardarResultado(
@@ -302,9 +448,9 @@ class ActivacionViewModel(
                     usuarioId = usuarioId,
                     fechaRealizacion = state.fechaRealizacion,
                     asistentesEstimados = asistentesEstimados,
-                    contactosGenerados = contactosGenerados,
-                    personasInteresadas = personasInteresadas,
-                    inscripciones = inscripciones
+                    contactosGenerados = cantidadContactos,
+                    personasInteresadas = cantidadInteresados,
+                    inscripciones = cantidadInscripciones
                 )
                 _uiState.update {
                     it.copy(
@@ -315,9 +461,9 @@ class ActivacionViewModel(
                             impacto = state.impacto.trim(),
                             fechaRealizacion = state.fechaRealizacion,
                             asistentesEstimados = asistentesEstimados,
-                            contactosGenerados = contactosGenerados,
-                            personasInteresadas = personasInteresadas,
-                            inscripciones = inscripciones
+                            contactosGenerados = cantidadContactos,
+                            personasInteresadas = cantidadInteresados,
+                            inscripciones = cantidadInscripciones
                         ),
                         participacionConfirmada =
                             state.resultadoFinal == EstadoGestion.ACTIVACION_REALIZADA.name,
@@ -339,16 +485,44 @@ class ActivacionViewModel(
         }
     }
 
-    private fun cambiar(transform: (ActivacionUiState) -> ActivacionUiState) {
-        _uiState.update { transform(it).copy(mensajeError = null, mensajeExito = null) }
+    private fun cambiar(
+        transform: (ActivacionUiState) -> ActivacionUiState,
+        limpiarError: (ActivacionErrores) -> ActivacionErrores = { it }
+    ) {
+        _uiState.update {
+            transform(it).copy(
+                errores = limpiarError(it.errores),
+                mensajeError = null,
+                mensajeExito = null
+            )
+        }
     }
 
-    private fun informarError(mensaje: String) {
-        _uiState.update { it.copy(mensajeError = mensaje, mensajeExito = null) }
+    private fun informarError(mensaje: String, errores: ActivacionErrores? = null) {
+        _uiState.update {
+            it.copy(
+                errores = errores ?: it.errores,
+                mensajeError = mensaje,
+                mensajeExito = null
+            )
+        }
     }
 
     private fun cantidadOpcional(valor: String): Int? =
-        if (valor.isBlank()) 0 else valor.toIntOrNull()
+        if (valor.isBlank()) 0 else valor.trim().toIntOrNull()
+
+    private fun validarCantidad(valor: String, mensaje: String): String? {
+        if (valor.isBlank()) return null
+        val cantidad = valor.trim().toIntOrNull()
+        return if (cantidad == null || cantidad < 0) mensaje else null
+    }
+
+    private fun validarLongitud(valor: String, campo: String, maximo: Int): String? =
+        if (valor.trim().length > maximo) {
+            "$campo no puede superar $maximo caracteres."
+        } else {
+            null
+        }
 
     companion object {
         fun factory(

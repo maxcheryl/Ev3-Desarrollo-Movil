@@ -28,6 +28,7 @@ import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 fun TarjetaOportunidad(
     oportunidad: OpportunityEntity,
     onClick: () -> Unit,
+    responsableNombre: String? = null,
     modifier: Modifier = Modifier
 ) {
     val tipo = TipoOportunidad.desdeNombre(oportunidad.tipo)
@@ -62,6 +63,14 @@ fun TarjetaOportunidad(
                 ChipEtiqueta(
                     texto = estado.etiqueta,
                     colorFondo = MaterialTheme.colorScheme.secondaryContainer
+                )
+            }
+
+            responsableNombre?.let { nombre ->
+                Text(
+                    text = "Responsable: $nombre",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

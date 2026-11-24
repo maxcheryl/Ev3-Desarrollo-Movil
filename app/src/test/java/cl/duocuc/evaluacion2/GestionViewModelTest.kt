@@ -40,6 +40,7 @@ class GestionViewModelTest : StringSpec({
     "Seleccionar oportunidad reinicia formulario y actualiza flujos" { GestionViewModelTestCases().seleccionarOportunidadReiniciaFormularioYActualizaFlujos() }
     "Begin nueva valida sesion perfil oportunidad y responsable" { GestionViewModelTestCases().beginNuevaValidaSesionPerfilOportunidadYResponsable() }
     "Guardar valida permisos y campos antes de registrar" { GestionViewModelTestCases().guardarValidaPermisosYCamposAntesDeRegistrar() }
+    "Supervisor registra seguimiento general sin cambiar estado" { GestionViewModelTestCases().supervisorRegistraSeguimientoGeneralSinCambiarEstado() }
     "Guardar recorta datos notifica y muestra error de duplicado" { GestionViewModelTestCases().guardarRecortaDatosNotificaYMuestraErrorDeDuplicado() }
 })
 
@@ -93,8 +94,10 @@ private class GestionViewModelTestCases {
         val supervisorSession = SessionManager().apply { iniciar(supervisor()) }
         val supervisorVm = viewModel(repository, history, users, supervisorSession)
         supervisorVm.seleccionarOportunidad(2)
+        coEvery { repository.buscarOportunidad(2) } returns oportunidad(responsable = 1)
         supervisorVm.beginNueva()
-        (supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo")) shouldBe true
+        advanceUntilIdle()
+        (supervisorVm.editor.value.mensajeError) shouldBe null
 
         val executiveSession = SessionManager().apply { iniciar(ejecutivo()) }
         val executiveVm = viewModel(repository, history, users, executiveSession)
@@ -139,7 +142,7 @@ private class GestionViewModelTestCases {
         )
         supervisorVm.seleccionarOportunidad(2)
         supervisorVm.guardar {}
-        (supervisorVm.editor.value.mensajeError.orEmpty().contains("Solo")) shouldBe true
+        (supervisorVm.editor.value.errores.hayErrores) shouldBe true
 
         val executiveVm = viewModel(
             repository,
@@ -153,6 +156,39 @@ private class GestionViewModelTestCases {
         executiveVm.guardar {}
         (executiveVm.editor.value.errores.hayErrores) shouldBe true
         coVerify(exactly = 0) { repository.registrar(any(), any()) }
+    }
+
+    fun supervisorRegistraSeguimientoGeneralSinCambiarEstado() = runTest {
+        val repository = mockk<GestionRepository>(relaxed = true)
+        val history = mockk<HistorialRepository>()
+        val users = mockk<UsuarioRepository>()
+        every { repository.observePorOportunidad(2) } returns flowOf(emptyList())
+        every { history.observePorOportunidad(2) } returns flowOf(emptyList())
+        every { users.observeAll() } returns flowOf(emptyList())
+        coEvery { repository.buscarOportunidad(2) } returns oportunidad(responsable = 1)
+        coEvery { repository.registrar(any(), null) } returns 55
+
+        val viewModel = viewModel(
+            repository,
+            history,
+            users,
+            SessionManager().apply { iniciar(supervisor()) }
+        )
+        viewModel.seleccionarOportunidad(2)
+        viewModel.beginNueva()
+        advanceUntilIdle()
+        viewModel.onTipoChange(TipoGestion.GESTION.name)
+        viewModel.onResultadoChange("Revisión general")
+        viewModel.onEstadoChange(EstadoGestion.CONTACTO_REALIZADO.name)
+        var saved = false
+
+        viewModel.guardar { saved = true }
+        advanceUntilIdle()
+
+        val captured = slot<GestionEntity>()
+        coVerify { repository.registrar(capture(captured), null) }
+        (captured.captured.usuarioId) shouldBe (9L)
+        (saved) shouldBe true
     }
 
     fun guardarRecortaDatosNotificaYMuestraErrorDeDuplicado() = runTest {
@@ -175,7 +211,9 @@ private class GestionViewModelTestCases {
         viewModel.onDescripcionChange("  Llamada realizada  ")
         viewModel.onResultadoChange("  Se presentó propuesta  ")
         viewModel.onProximaAccionChange("  Enviar correo  ")
-        viewModel.onFechaProximaAccionChange(500)
+        viewModel.onFechaProximaAccionChange(
+            (viewModel.editor.value.form.fechaGestion ?: 0L) + 86_400_000L
+        )
         var saved = false
 
         viewModel.guardar { saved = true }
@@ -193,7 +231,7 @@ private class GestionViewModelTestCases {
         coEvery { repository.registrar(any(), any()) } throws IllegalStateException("duplicado")
         viewModel.onTipoChange(TipoGestion.GESTION.name)
         viewModel.onEstadoChange(EstadoGestion.CONTACTO_REALIZADO.name)
-        viewModel.onDescripcionChange("Seguimiento")
+        viewModel.onResultadoChange("Seguimiento")
         viewModel.guardar {}
         advanceUntilIdle()
         (viewModel.editor.value.mensajeError.orEmpty().contains("duplicado")) shouldBe true

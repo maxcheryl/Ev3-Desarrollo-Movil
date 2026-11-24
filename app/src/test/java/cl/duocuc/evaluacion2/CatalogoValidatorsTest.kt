@@ -24,7 +24,8 @@ private class CatalogoValidatorsTestCases {
         val valid = OrganizacionFormState(
             nombre = "Agencia Max",
             tipo = TipoOrganizacion.values().first().name,
-            comuna = "Santiago"
+            comuna = "Santiago",
+            sitioWeb = "https://agenciamax.cl"
         )
         (OrganizacionValidator.validar(valid).hayErrores) shouldBe false
 
@@ -34,6 +35,12 @@ private class CatalogoValidatorsTestCases {
         (invalid.nombre) shouldNotBe null
         (invalid.tipo) shouldNotBe null
         (invalid.comuna) shouldNotBe null
+
+        val invalidOptional = OrganizacionValidator.validar(
+            valid.copy(sitioWeb = "no es una web", observaciones = "x".repeat(2001))
+        )
+        (invalidOptional.sitioWeb) shouldNotBe null
+        (invalidOptional.observaciones) shouldNotBe null
     }
 
     fun contactoValidaCorreoTelefonoYOrganizacion() {
@@ -60,6 +67,12 @@ private class CatalogoValidatorsTestCases {
         (invalid.cargo) shouldNotBe null
         (invalid.correo) shouldNotBe null
         (invalid.telefono) shouldNotBe null
+
+        val invalidOptional = ContactoValidator.validar(
+            valid.copy(area = "x".repeat(101), observaciones = "x".repeat(2001))
+        )
+        (invalidOptional.area) shouldNotBe null
+        (invalidOptional.observaciones) shouldNotBe null
     }
 
     fun eventoExigeFechaComunaYOrganizacion() {
@@ -67,6 +80,8 @@ private class CatalogoValidatorsTestCases {
             nombre = "Feria de bienestar",
             fecha = 1L,
             fechaTermino = 2L,
+            horaInicio = "09:00",
+            horaTermino = "18:00",
             region = "Metropolitana",
             comuna = "Santiago",
             organizacionId = 3L
@@ -96,5 +111,21 @@ private class CatalogoValidatorsTestCases {
         )
         (cantidadesInvalidas.asistentesEstimados) shouldNotBe null
         (cantidadesInvalidas.costoReferencial) shouldNotBe null
+
+        val horarioInvalido = EventoValidator.validar(
+            valid.copy(
+                fecha = 10L,
+                fechaTermino = 10L,
+                horaInicio = "18:00",
+                horaTermino = "18:00",
+                direccion = "x".repeat(201),
+                publicoEsperado = "x".repeat(151),
+                publicoObjetivo = listOf("Audiencia inventada")
+            )
+        )
+        (horarioInvalido.horaTermino) shouldNotBe null
+        (horarioInvalido.direccion) shouldNotBe null
+        (horarioInvalido.publicoEsperado) shouldNotBe null
+        (horarioInvalido.publicoObjetivo) shouldNotBe null
     }
 }

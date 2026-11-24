@@ -102,6 +102,7 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     val usuario by loginViewModel.usuario.collectAsState()
+    val usuarios by gestionViewModel.usuarios.collectAsState()
 
     // Si la sesión en memoria se perdió (por ejemplo, tras recrear el proceso)
     // y la navegación restauró una pantalla protegida, se vuelve al login.
@@ -154,6 +155,7 @@ fun AppNavigation(
             MenuScreen(
                 nombre = usuario?.nombre ?: "Usuario",
                 perfil = usuario?.perfil?.etiqueta ?: "",
+                esSupervisor = usuario?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL,
                 onOportunidades = { navController.navigate(Rutas.Oportunidades.route) },
                 onCatalogos = { navController.navigate(Rutas.Catalogos.route) },
                 onCatalogoEventosExternos = {
@@ -303,7 +305,8 @@ fun AppNavigation(
                 },
                 onSeleccionar = { id ->
                     navController.navigate(Rutas.DetalleOportunidad.conId(id))
-                }
+                },
+                usuarios = usuarios
             )
         }
 

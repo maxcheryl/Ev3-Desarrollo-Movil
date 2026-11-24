@@ -101,13 +101,19 @@ class OrganizacionViewModel(
 
     fun onSitioWebChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(sitioWeb = valor))
+            it.copy(
+                form = it.form.copy(sitioWeb = valor),
+                errores = it.errores.copy(sitioWeb = null)
+            )
         }
     }
 
     fun onObservacionesChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(observaciones = valor))
+            it.copy(
+                form = it.form.copy(observaciones = valor),
+                errores = it.errores.copy(observaciones = null)
+            )
         }
     }
 

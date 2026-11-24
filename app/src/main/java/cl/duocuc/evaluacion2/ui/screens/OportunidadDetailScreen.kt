@@ -93,12 +93,17 @@ fun OportunidadDetailScreen(
     val historial by gestionViewModel.historial.collectAsState()
     val usuarios by gestionViewModel.usuarios.collectAsState()
     val esEjecutivo by gestionViewModel.esEjecutivo.collectAsState()
+    val puedeRegistrarSeguimiento by gestionViewModel.puedeRegistrarSeguimiento.collectAsState()
+    val esSupervisor by viewModel.esSupervisor.collectAsState()
     val organizaciones by organizacionViewModel.organizaciones.collectAsState()
     val contactos by contactoViewModel.contactos.collectAsState()
     val eventos by eventoViewModel.eventos.collectAsState()
     var confirmarEliminacion by remember(id) { mutableStateOf(false) }
     var eliminando by remember(id) { mutableStateOf(false) }
     var errorEliminacion by remember(id) { mutableStateOf<String?>(null) }
+    var mostrarSelectorPrioridad by remember(id) { mutableStateOf(false) }
+    var confirmarDescarte by remember(id) { mutableStateOf(false) }
+    var mensajeAccion by remember(id) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(id) {
         gestionViewModel.seleccionarOportunidad(id)
@@ -115,7 +120,7 @@ fun OportunidadDetailScreen(
                     }
                 },
                 actions = {
-                    if (oportunidad != null) {
+                    if (oportunidad != null && !esSupervisor) {
                         IconButton(onClick = onEditar) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Editar oportunidad")
                         }
@@ -147,16 +152,91 @@ fun OportunidadDetailScreen(
                 organizaciones = organizaciones,
                 contactos = contactos,
                 eventos = eventos,
-                puedeRegistrarGestion = esEjecutivo,
+                puedeRegistrarGestion = puedeRegistrarSeguimiento,
+                puedeRegistrarSeguimiento = puedeRegistrarSeguimiento,
+                puedeRegistrarEvento = esEjecutivo,
+                esSupervisor = esSupervisor,
                 onRegistrarEvento = { onRegistrarEvento(oportunidad.eventoId) },
                 onRegistrarGestion = onRegistrarGestion,
                 onGestionarActivacion = onGestionarActivacion,
+                onDescartar = { confirmarDescarte = true },
+                mensajeAccion = mensajeAccion,
+                onMostrarSelectorPrioridad = { mostrarSelectorPrioridad = true },
                 onEliminar = { confirmarEliminacion = true },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             )
         }
+    }
+
+    if (mostrarSelectorPrioridad && oportunidad != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarSelectorPrioridad = false },
+            title = { Text("Cambiar prioridad") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Prioridad.entries.forEach { prioridad ->
+                        TextButton(
+                            onClick = {
+                                mostrarSelectorPrioridad = false
+                                viewModel.cambiarPrioridad(
+                                    id = id,
+                                    nuevaPrioridad = prioridad.name,
+                                    onListo = { mensajeAccion = "Prioridad actualizada." },
+                                    onError = { mensajeAccion = it }
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(prioridad.etiqueta)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarSelectorPrioridad = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (confirmarDescarte && oportunidad != null) {
+        AlertDialog(
+            onDismissRequest = { confirmarDescarte = false },
+            title = { Text("Descartar oportunidad") },
+            text = {
+                Text("¿Confirmas que deseas descartar «${oportunidad.nombre}»?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.descartarOportunidad(
+                            id = id,
+                            onListo = {
+                                confirmarDescarte = false
+                                mensajeAccion = "Oportunidad descartada."
+                            },
+                            onError = {
+                                confirmarDescarte = false
+                                mensajeAccion = it
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Descartar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmarDescarte = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     if (confirmarEliminacion && oportunidad != null) {
@@ -223,9 +303,15 @@ private fun DetalleContenido(
     contactos: List<ContactoEntity>,
     eventos: List<EventoEntity>,
     puedeRegistrarGestion: Boolean,
+    puedeRegistrarSeguimiento: Boolean,
+    puedeRegistrarEvento: Boolean,
+    esSupervisor: Boolean,
     onRegistrarEvento: (Long?) -> Unit,
     onRegistrarGestion: () -> Unit,
     onGestionarActivacion: () -> Unit,
+    onDescartar: () -> Unit,
+    mensajeAccion: String?,
+    onMostrarSelectorPrioridad: () -> Unit,
     onEliminar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -304,6 +390,11 @@ private fun DetalleContenido(
                 CampoDetalle("Prioridad", prioridad.etiqueta)
                 CampoDetalle("Potencial comercial", potencial.etiqueta)
                 CampoDetalle("Estado de gestión", estado.etiqueta)
+                CampoDetalle(
+                    "Responsable",
+                    oportunidad.responsableId?.let { usuarios[it] ?: "Usuario #$it" }
+                        ?: "Sin responsable asignado"
+                )
                 CampoDetalle("Organización", organizacion?.nombre ?: "Sin organización asociada")
                 CampoDetalle(
                     "Contacto",
@@ -390,31 +481,35 @@ private fun DetalleContenido(
             gestiones = gestiones,
             usuarios = usuarios,
             puedeRegistrar = puedeRegistrarGestion,
+            puedeRegistrarEvento = puedeRegistrarEvento,
+            puedeRegistrarSeguimiento = puedeRegistrarSeguimiento,
             onRegistrarEvento = { onRegistrarEvento(oportunidad.eventoId) },
             onRegistrar = onRegistrarGestion
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "Gestión de activación",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            OutlinedButton(
-                onClick = onGestionarActivacion,
-                enabled = permiteGestionActivacion,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Outlined.EventAvailable, contentDescription = null)
-                Text("Gestionar activación", modifier = Modifier.padding(start = 8.dp))
-            }
-            if (!permiteGestionActivacion) {
+        if (!esSupervisor) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "La coordinación estará disponible cuando la participación quede confirmada.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Gestión de activación",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                OutlinedButton(
+                    onClick = onGestionarActivacion,
+                    enabled = permiteGestionActivacion,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Outlined.EventAvailable, contentDescription = null)
+                    Text("Gestionar activación", modifier = Modifier.padding(start = 8.dp))
+                }
+                if (!permiteGestionActivacion) {
+                    Text(
+                        text = "La coordinación estará disponible cuando la participación quede confirmada.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -423,15 +518,48 @@ private fun DetalleContenido(
             usuarios = usuarios
         )
 
-        OutlinedButton(
-            onClick = onEliminar,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(Icons.Outlined.Delete, contentDescription = null)
-            Text("Eliminar oportunidad", modifier = Modifier.padding(start = 8.dp))
+        if (esSupervisor) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onMostrarSelectorPrioridad,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cambiar prioridad")
+                }
+                if (oportunidad.estado != EstadoGestion.OPORTUNIDAD_DESCARTADA.name) {
+                    OutlinedButton(
+                        onClick = onDescartar,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Descartar oportunidad")
+                    }
+                }
+                mensajeAccion?.let {
+                    Text(
+                        text = it,
+                        color = if (it.contains("No se pudo") || it.contains("No tienes")) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        } else {
+            OutlinedButton(
+                onClick = onEliminar,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Outlined.Delete, contentDescription = null)
+                Text("Eliminar oportunidad", modifier = Modifier.padding(start = 8.dp))
+            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -458,6 +586,8 @@ private fun GestionesSeccion(
     gestiones: List<GestionEntity>,
     usuarios: Map<Long, String>,
     puedeRegistrar: Boolean,
+    puedeRegistrarEvento: Boolean,
+    puedeRegistrarSeguimiento: Boolean,
     onRegistrarEvento: () -> Unit,
     onRegistrar: () -> Unit
 ) {
@@ -491,7 +621,7 @@ private fun GestionesSeccion(
             }
         }
 
-        if (puedeRegistrar) {
+        if (puedeRegistrar && puedeRegistrarEvento) {
             Button(
                 onClick = onRegistrarEvento,
                 modifier = Modifier.fillMaxWidth()
@@ -499,6 +629,8 @@ private fun GestionesSeccion(
                 Icon(Icons.Outlined.Add, contentDescription = null)
                 Text("Registrar evento", modifier = Modifier.padding(start = 8.dp))
             }
+        }
+        if (puedeRegistrar && puedeRegistrarSeguimiento) {
             Button(
                 onClick = onRegistrar,
                 modifier = Modifier.fillMaxWidth()

@@ -292,14 +292,15 @@ fun ActivacionScreen(
                     selected = state.responsableId?.toString().orEmpty(),
                     options = responsables,
                     placeholder = "Selecciona un responsable",
-                    error = if (responsables.isEmpty()) "No hay usuarios disponibles." else null,
+                    error = state.errores.responsable
+                        ?: if (responsables.isEmpty()) "No hay usuarios disponibles." else null,
                     onSelected = { viewModel.onResponsableChange(it.toLongOrNull()) }
                 )
 
                 CampoTextoFormulario(
                     label = "Espacio",
                     value = state.espacio,
-                    error = null,
+                    error = state.errores.espacio,
                     onValueChange = viewModel::onEspacioChange
                 )
 
@@ -307,20 +308,23 @@ fun ActivacionScreen(
                     value = state.fecha?.let { formatoFecha.format(Date(it)) }.orEmpty(),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Fecha") },
+                    label = { Text("Fecha de realización *") },
                     placeholder = { Text("Selecciona una fecha") },
                     trailingIcon = {
                         IconButton(onClick = { mostrarSelectorFecha = true }) {
                             Icon(Icons.Outlined.CalendarMonth, contentDescription = "Seleccionar fecha")
                         }
                     },
+                    isError = state.errores.fecha != null,
+                    supportingText = state.errores.fecha?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 CampoTextoFormulario(
                     label = "Costo",
                     value = state.costo,
-                    error = null,
+                    error = state.errores.costo,
                     onValueChange = viewModel::onCostoChange,
                     keyboardType = KeyboardType.Decimal
                 )
@@ -328,7 +332,7 @@ fun ActivacionScreen(
                 CampoTextoFormulario(
                     label = "Requisitos",
                     value = state.requisitos,
-                    error = null,
+                    error = state.errores.requisitos,
                     onValueChange = viewModel::onRequisitosChange,
                     singleLine = false
                 )
@@ -336,7 +340,7 @@ fun ActivacionScreen(
                 CampoTextoFormulario(
                     label = "Observaciones de coordinación",
                     value = state.observacionesCoordinacion,
-                    error = null,
+                    error = state.errores.observacionesCoordinacion,
                     onValueChange = viewModel::onObservacionesCoordinacionChange,
                     singleLine = false
                 )
@@ -445,14 +449,22 @@ fun ActivacionScreen(
                     selected = state.resultadoFinal,
                     options = opcionesResultado,
                     placeholder = "Selecciona el resultado",
-                    error = null,
+                    error = state.errores.resultadoFinal,
                     onSelected = viewModel::onResultadoFinalChange
                 )
                 OutlinedTextField(
                     value = state.fechaRealizacion?.let { formatoFecha.format(Date(it)) }.orEmpty(),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Fecha de realización") },
+                    label = {
+                        Text(
+                            if (state.resultadoFinal == EstadoGestion.ACTIVACION_REALIZADA.name) {
+                                "Fecha de realización *"
+                            } else {
+                                "Fecha de realización"
+                            }
+                        )
+                    },
                     placeholder = { Text("Selecciona una fecha") },
                     trailingIcon = {
                         IconButton(onClick = { mostrarSelectorFechaResultado = true }) {
@@ -462,54 +474,58 @@ fun ActivacionScreen(
                             )
                         }
                     },
+                    isError = state.errores.fechaRealizacion != null,
+                    supportingText = state.errores.fechaRealizacion?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 CampoTextoFormulario(
                     label = "Asistentes estimados",
                     value = state.asistentesEstimados,
-                    error = null,
+                    error = state.errores.asistentesEstimados,
                     onValueChange = viewModel::onAsistentesEstimadosChange,
                     keyboardType = KeyboardType.Number
                 )
                 CampoTextoFormulario(
                     label = "Contactos generados",
                     value = state.contactosGenerados,
-                    error = null,
+                    error = state.errores.contactosGenerados,
                     onValueChange = viewModel::onContactosGeneradosChange,
                     keyboardType = KeyboardType.Number
                 )
                 CampoTextoFormulario(
                     label = "Personas interesadas",
                     value = state.personasInteresadas,
-                    error = null,
+                    error = state.errores.personasInteresadas,
                     onValueChange = viewModel::onPersonasInteresadasChange,
                     keyboardType = KeyboardType.Number
                 )
                 CampoTextoFormulario(
                     label = "Inscripciones",
                     value = state.inscripciones,
-                    error = null,
+                    error = state.errores.inscripciones,
                     onValueChange = viewModel::onInscripcionesChange,
                     keyboardType = KeyboardType.Number
                 )
                 CampoTextoFormulario(
                     label = "Observaciones del resultado",
                     value = state.observaciones,
-                    error = null,
+                    error = state.errores.observaciones,
                     onValueChange = viewModel::onObservacionesChange,
                     singleLine = false
                 )
                 CampoTextoFormulario(
                     label = "Impacto o evaluación",
                     value = state.impacto,
-                    error = null,
+                    error = state.errores.impacto,
                     onValueChange = viewModel::onImpactoChange,
                     singleLine = false
                 )
                 Button(
                     onClick = viewModel::guardarResultado,
                     enabled = !state.guardando && state.activacionId != null &&
-                        state.resultadoFinal.isNotBlank() && state.oportunidadConfirmada,
+                        state.oportunidadConfirmada,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(

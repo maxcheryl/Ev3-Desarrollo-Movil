@@ -113,7 +113,10 @@ class ContactoViewModel(
 
     fun onAreaChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(area = valor))
+            it.copy(
+                form = it.form.copy(area = valor),
+                errores = it.errores.copy(area = null)
+            )
         }
     }
 
@@ -137,7 +140,10 @@ class ContactoViewModel(
 
     fun onObservacionesChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(observaciones = valor))
+            it.copy(
+                form = it.form.copy(observaciones = valor),
+                errores = it.errores.copy(observaciones = null)
+            )
         }
     }
 

@@ -212,7 +212,7 @@ fun EventoFormScreen(
             CampoTextoFormulario(
                 label = "Descripción",
                 value = editor.form.descripcion,
-                error = null,
+                error = editor.errores.descripcion,
                 onValueChange = viewModel::onDescripcionChange,
                 singleLine = false
             )
@@ -312,11 +312,17 @@ fun EventoFormScreen(
                     Text("Término: ${editor.form.horaTermino.ifBlank { "Hora" }}")
                 }
             }
+            editor.errores.horaInicio?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+            editor.errores.horaTermino?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
 
             CampoTextoFormulario(
                 label = "Dirección o ubicación",
                 value = editor.form.direccion,
-                error = null,
+                error = editor.errores.direccion,
                 onValueChange = viewModel::onDireccionChange
             )
 
@@ -356,7 +362,7 @@ fun EventoFormScreen(
             CampoTextoFormulario(
                 label = "Público esperado",
                 value = editor.form.publicoEsperado,
-                error = null,
+                error = editor.errores.publicoEsperado,
                 onValueChange = viewModel::onPublicoEsperadoChange
             )
             Text("Público objetivo", style = MaterialTheme.typography.labelLarge)
@@ -371,6 +377,9 @@ fun EventoFormScreen(
                     Text(it)
                 }
             }
+            editor.errores.publicoObjetivo?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
             CampoTextoFormulario(
                 label = "Cantidad estimada de asistentes",
                 value = editor.form.asistentesEstimados,
@@ -383,14 +392,14 @@ fun EventoFormScreen(
             CampoTextoFormulario(
                 label = "Condiciones",
                 value = editor.form.condicionesParticipacion,
-                error = null,
+                error = editor.errores.condicionesParticipacion,
                 onValueChange = viewModel::onCondicionesChange,
                 singleLine = false
             )
             CampoTextoFormulario(
                 label = "Requisitos",
                 value = editor.form.requisitos,
-                error = null,
+                error = editor.errores.requisitos,
                 onValueChange = viewModel::onRequisitosChange,
                 singleLine = false
             )
@@ -404,7 +413,7 @@ fun EventoFormScreen(
             CampoTextoFormulario(
                 label = "Espacios disponibles",
                 value = editor.form.espaciosDisponibles,
-                error = null,
+                error = editor.errores.espaciosDisponibles,
                 onValueChange = viewModel::onEspaciosDisponiblesChange,
                 singleLine = false
             )

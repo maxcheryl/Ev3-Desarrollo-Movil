@@ -38,6 +38,8 @@ class OportunidadViewModelTest : StringSpec({
 
     "Lista se filtra por perfil y actualiza permiso de supervisor" { OportunidadViewModelTestCases().listaSeFiltraPorPerfilYActualizaPermisoDeSupervisor() }
     "Begin editar maneja no encontrada y precarga entidad existente" { OportunidadViewModelTestCases().beginEditarManejaNoEncontradaYPrecargaEntidadExistente() }
+    "Supervisor solo puede consultar y usar acciones acotadas" { OportunidadViewModelTestCases().supervisorSoloPuedeConsultarYUsarAccionesAcotadas() }
+    "Supervisor modifica prioridad y descarta" { OportunidadViewModelTestCases().supervisorModificaPrioridadYDescarta() }
     "Guardar rechaza sesion ausente y formulario invalido" { OportunidadViewModelTestCases().guardarRechazaSesionAusenteYFormularioInvalido() }
     "Guardar nueva recorta campos asigna responsable y notifica" { OportunidadViewModelTestCases().guardarNuevaRecortaCamposAsignaResponsableYNotifica() }
     "Guardar editada mantiene responsable y reporta duplicado" { OportunidadViewModelTestCases().guardarEditadaMantieneResponsableYReportaDuplicado() }
@@ -80,11 +82,76 @@ private class OportunidadViewModelTestCases {
 
         val existing = oportunidad(10, responsable = 1)
         viewModel.beginEditar(existing.id)
+        (viewModel.editor.value.mensajeError) shouldBe
+            ("No tienes permiso para editar esta oportunidad.")
+
+        session.iniciar(ejecutivo(1))
+        advanceUntilIdle()
+        viewModel.beginEditar(existing.id)
         (viewModel.editor.value.form.nombre) shouldBe (existing.nombre)
         (viewModel.editor.value.form.fechaCreacion) shouldBe (existing.fechaCreacion)
         (viewModel.editor.value.form.comuna) shouldBe (existing.comuna)
         (viewModel.editor.value.form.contactoId) shouldBe (existing.contactoId)
         (viewModel.editor.value.mensajeError) shouldBe null
+    }
+
+    fun supervisorSoloPuedeConsultarYUsarAccionesAcotadas() = runTest {
+        val repository = repository()
+        val session = SessionManager().apply { iniciar(supervisor()) }
+        val viewModel = OportunidadViewModel(repository, session)
+        collectWhileSubscribed(viewModel.oportunidades)
+        advanceUntilIdle()
+
+        viewModel.beginNueva()
+        (viewModel.editor.value.mensajeError.orEmpty().contains("no puede crear")) shouldBe true
+        viewModel.beginEditar(10)
+        (viewModel.editor.value.mensajeError.orEmpty().contains("No tienes permiso")) shouldBe true
+        viewModel.guardarOportunidad {}
+        (viewModel.editor.value.mensajeError.orEmpty().contains("solo puede consultar")) shouldBe true
+
+        var error: String? = null
+        viewModel.eliminarOportunidad(10, {}, { error = it })
+        (error.orEmpty().contains("debe descartar")) shouldBe true
+        coVerify(exactly = 0) { repository.eliminar(any()) }
+        coVerify(exactly = 0) { repository.guardar(any(), any()) }
+    }
+
+    fun supervisorModificaPrioridadYDescarta() = runTest {
+        val repository = repository()
+        val session = SessionManager().apply { iniciar(supervisor()) }
+        val viewModel = OportunidadViewModel(repository, session)
+        val existing = oportunidad(10, responsable = 1)
+        var current = existing
+        val saved = slot<OpportunityEntity>()
+        coEvery { repository.buscarPorId(10) } answers { current }
+        coEvery { repository.guardar(capture(saved), 99) } answers {
+            current = saved.captured
+            current.id
+        }
+
+        var error: String? = null
+        var completado = false
+        viewModel.cambiarPrioridad(
+            id = 10,
+            nuevaPrioridad = Prioridad.ALTA.name,
+            onListo = { completado = true },
+            onError = { error = it }
+        )
+        advanceUntilIdle()
+
+        (current.prioridad) shouldBe Prioridad.ALTA.name
+        (completado) shouldBe true
+        (error) shouldBe null
+
+        viewModel.descartarOportunidad(
+            id = 10,
+            onListo = { completado = true },
+            onError = { error = it }
+        )
+        advanceUntilIdle()
+
+        (current.estado) shouldBe EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+        coVerify(exactly = 2) { repository.guardar(any(), 99) }
     }
 
     fun guardarRechazaSesionAusenteYFormularioInvalido() = runTest {
@@ -136,27 +203,27 @@ private class OportunidadViewModelTestCases {
 
     fun guardarEditadaMantieneResponsableYReportaDuplicado() = runTest {
         val repository = repository()
-        val session = SessionManager().apply { iniciar(supervisor()) }
+        val session = SessionManager().apply { iniciar(ejecutivo(1)) }
         val viewModel = OportunidadViewModel(repository, session)
         collectWhileSubscribed(viewModel.oportunidades)
         advanceUntilIdle()
         viewModel.beginEditar(10)
         viewModel.onNombreChange("  Feria editada  ")
-        coEvery { repository.guardar(any(), 99) } returns 10
+        coEvery { repository.guardar(any(), 1) } returns 10
         var callbackId: Long? = null
 
         viewModel.guardarOportunidad { callbackId = it }
         advanceUntilIdle()
 
         val saved = slot<OpportunityEntity>()
-        coVerify { repository.guardar(capture(saved), 99) }
+        coVerify { repository.guardar(capture(saved), 1) }
         (saved.captured.nombre) shouldBe ("Feria editada")
         (saved.captured.responsableId) shouldBe (1L)
         (callbackId) shouldBe (10L)
 
         viewModel.beginNueva()
         completarFormulario(viewModel)
-        coEvery { repository.guardar(any(), 99) } throws IllegalStateException("UNIQUE constraint")
+        coEvery { repository.guardar(any(), 1) } throws IllegalStateException("UNIQUE constraint")
         viewModel.guardarOportunidad {}
         advanceUntilIdle()
         (viewModel.editor.value.mensajeError.orEmpty().contains("UNIQUE constraint")) shouldBe true
@@ -165,7 +232,7 @@ private class OportunidadViewModelTestCases {
 
     fun eliminarInformaAusenciaErrorYExito() = runTest {
         val repository = repository()
-        val session = SessionManager().apply { iniciar(supervisor()) }
+        val session = SessionManager().apply { iniciar(ejecutivo(1)) }
         val viewModel = OportunidadViewModel(repository, session)
         collectWhileSubscribed(viewModel.oportunidades)
         advanceUntilIdle()
@@ -185,8 +252,8 @@ private class OportunidadViewModelTestCases {
         advanceUntilIdle()
         (deleted) shouldBe true
 
-        coEvery { repository.eliminar(11) } throws IllegalStateException("DB falla")
-        viewModel.eliminarOportunidad(11, {}, { error = it })
+        coEvery { repository.eliminar(10) } throws IllegalStateException("DB falla")
+        viewModel.eliminarOportunidad(10, {}, { error = it })
         advanceUntilIdle()
         (error.orEmpty().contains("DB falla")) shouldBe true
     }
@@ -197,12 +264,19 @@ private class OportunidadViewModelTestCases {
         val viewModel = OportunidadViewModel(repository, session)
         collectWhileSubscribed(viewModel.oportunidades)
         advanceUntilIdle()
+
+        var supervisorError: String? = null
+        viewModel.eliminarOportunidad(10, {}, { supervisorError = it })
+        (supervisorError.orEmpty().contains("debe descartar")) shouldBe true
+        coVerify(exactly = 0) { repository.eliminar(10) }
+
         session.iniciar(ejecutivo(1))
+        advanceUntilIdle()
 
         var error: String? = null
         viewModel.eliminarOportunidad(11, {}, { error = it })
 
-        (error) shouldBe ("No tienes permiso para eliminar esta oportunidad.")
+        (error) shouldBe ("No se encontró la oportunidad para eliminarla.")
         coVerify(exactly = 0) { repository.eliminar(11) }
     }
 
@@ -215,11 +289,14 @@ private class OportunidadViewModelTestCases {
 
         viewModel.beginEditar(11)
         session.iniciar(ejecutivo(1))
+        advanceUntilIdle()
         viewModel.beginEditar(11)
 
-        (viewModel.editor.value.mensajeError) shouldBe ("No tienes permiso para editar esta oportunidad.")
+        (viewModel.editor.value.mensajeError) shouldBe
+            ("No se encontró la oportunidad solicitada.")
         viewModel.guardarOportunidad {}
-        (viewModel.editor.value.mensajeError) shouldBe ("No tienes permiso para editar esta oportunidad.")
+        (viewModel.editor.value.mensajeError) shouldBe
+            ("No se encontró la oportunidad solicitada.")
         coVerify(exactly = 0) { repository.guardar(any(), any()) }
     }
 

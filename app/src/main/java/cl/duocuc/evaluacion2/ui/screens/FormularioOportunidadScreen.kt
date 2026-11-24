@@ -188,7 +188,7 @@ fun FormularioOportunidadScreen(
             FormTextField(
                 label = "Público esperado (opcional)",
                 value = editor.form.publicoEsperado,
-                error = null,
+                error = editor.errores.publicoEsperado,
                 onValueChange = viewModel::onPublicoEsperadoChange
             )
 
@@ -200,13 +200,11 @@ fun FormularioOportunidadScreen(
                 readOnly = true,
                 label = { Text("Fecha de identificación *") },
                 trailingIcon = {
-                    if (id == 0L) {
-                        IconButton(onClick = { mostrarSelectorFecha = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = "Seleccionar fecha de identificación"
-                            )
-                        }
+                    IconButton(onClick = { mostrarSelectorFecha = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = "Seleccionar fecha de identificación"
+                        )
                     }
                 },
                 isError = editor.errores.fechaIdentificacion != null,
@@ -292,7 +290,7 @@ fun FormularioOportunidadScreen(
                 options = listOf(OpcionDropdown("", "Sin organización")) +
                     organizaciones.map { OpcionDropdown(it.id.toString(), it.nombre) },
                 placeholder = "Selecciona una organización",
-                error = null,
+                error = editor.errores.organizacionId,
                 onSelected = { viewModel.onOrganizacionChange(it.toLongOrNull()) }
             )
 
@@ -302,7 +300,7 @@ fun FormularioOportunidadScreen(
                 options = listOf(OpcionDropdown("", "Sin contacto")) +
                     contactos.map { OpcionDropdown(it.id.toString(), it.nombre) },
                 placeholder = "Selecciona un contacto",
-                error = null,
+                error = editor.errores.contactoId,
                 onSelected = { viewModel.onContactoChange(it.toLongOrNull()) }
             )
 
@@ -312,7 +310,7 @@ fun FormularioOportunidadScreen(
                 options = listOf(OpcionDropdown("", "Sin evento")) +
                     eventos.map { OpcionDropdown(it.id.toString(), it.nombre) },
                 placeholder = "Selecciona un evento",
-                error = null,
+                error = editor.errores.eventoId,
                 onSelected = { viewModel.onEventoChange(it.toLongOrNull()) }
             )
 
@@ -326,7 +324,7 @@ fun FormularioOportunidadScreen(
             FormTextField(
                 label = "Observaciones adicionales (opcional)",
                 value = editor.form.observaciones,
-                error = null,
+                error = editor.errores.observaciones,
                 singleLine = false,
                 onValueChange = viewModel::onObservacionesChange
             )

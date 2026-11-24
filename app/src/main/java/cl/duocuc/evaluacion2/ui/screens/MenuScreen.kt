@@ -34,6 +34,7 @@ import cl.duocuc.evaluacion2.ui.components.TarjetaAcceso
 fun MenuScreen(
     nombre: String,
     perfil: String,
+    esSupervisor: Boolean,
     onOportunidades: () -> Unit,
     onCatalogos: () -> Unit,
     onCatalogoEventosExternos: () -> Unit,
@@ -74,37 +75,43 @@ fun MenuScreen(
         TarjetaAcceso(
             icono = Icons.Outlined.EventAvailable,
             titulo = "Oportunidades",
-            descripcion = "Consulta, crea y edita oportunidades de activación corporativa.",
+            descripcion = if (esSupervisor) {
+                "Consulta, filtra y da seguimiento a las oportunidades comerciales."
+            } else {
+                "Consulta, crea y edita oportunidades de activación corporativa."
+            },
             onClick = onOportunidades
         )
 
-        TarjetaAcceso(
-            icono = Icons.Outlined.Category,
-            titulo = "Organizaciones y contactos",
-            descripcion = "Administra las organizaciones y sus contactos registrados.",
-            onClick = onCatalogos
-        )
+        if (!esSupervisor) {
+            TarjetaAcceso(
+                icono = Icons.Outlined.Category,
+                titulo = "Organizaciones y contactos",
+                descripcion = "Administra las organizaciones y sus contactos registrados.",
+                onClick = onCatalogos
+            )
 
-        TarjetaAcceso(
-            icono = Icons.Outlined.Event,
-            titulo = "Catálogo de eventos externos",
-            descripcion = "Consulta registros y crea eventos mediante la API de prueba.",
-            onClick = onCatalogoEventosExternos
-        )
+            TarjetaAcceso(
+                icono = Icons.Outlined.Event,
+                titulo = "Catálogo de eventos externos",
+                descripcion = "Consulta registros y crea eventos mediante la API de prueba.",
+                onClick = onCatalogoEventosExternos
+            )
 
-        TarjetaAcceso(
-            icono = Icons.Outlined.QrCodeScanner,
-            titulo = "Escanear código QR",
-            descripcion = "Escanea el código QR de una oportunidad para abrirla al instante.",
-            onClick = onEscanearQr
-        )
+            TarjetaAcceso(
+                icono = Icons.Outlined.QrCodeScanner,
+                titulo = "Escanear código QR",
+                descripcion = "Escanea el código QR de una oportunidad para abrirla al instante.",
+                onClick = onEscanearQr
+            )
 
-        TarjetaAcceso(
-            icono = Icons.Outlined.LocationOn,
-            titulo = "Mi ubicación",
-            descripcion = "Obtén tu ubicación de referencia para contextualizar la gestión.",
-            onClick = onUbicacion
-        )
+            TarjetaAcceso(
+                icono = Icons.Outlined.LocationOn,
+                titulo = "Mi ubicación",
+                descripcion = "Obtén tu ubicación de referencia para contextualizar la gestión.",
+                onClick = onUbicacion
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 

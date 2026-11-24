@@ -39,7 +39,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.model.PostResponse
+import cl.duocuc.evaluacion2.ui.viewmodels.CampoEventoPost
+import cl.duocuc.evaluacion2.ui.viewmodels.CampoPublicacion
 import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
+import cl.duocuc.evaluacion2.ui.viewmodels.PublicacionErrores
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,44 +137,79 @@ fun PublicacionesExternasScreen(
                                 )
                                 OutlinedTextField(
                                     value = nuevoIdEvento,
-                                    onValueChange = { nuevoIdEvento = it },
+                                    onValueChange = {
+                                        nuevoIdEvento = it
+                                        viewModel.limpiarErrorEvento(CampoEventoPost.ID)
+                                    },
                                     label = { Text("ID del evento") },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Number
                                     ),
+                                    isError = uiState.erroresEvento.idEvento != null,
+                                    supportingText = uiState.erroresEvento.idEvento?.let {
+                                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    },
                                     enabled = !uiState.mutacionEnCurso,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 OutlinedTextField(
                                     value = nuevoNombreEvento,
-                                    onValueChange = { nuevoNombreEvento = it },
+                                    onValueChange = {
+                                        nuevoNombreEvento = it
+                                        viewModel.limpiarErrorEvento(CampoEventoPost.NOMBRE)
+                                    },
                                     label = { Text("Nombre del evento") },
                                     singleLine = true,
+                                    isError = uiState.erroresEvento.nombreEvento != null,
+                                    supportingText = uiState.erroresEvento.nombreEvento?.let {
+                                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    },
                                     enabled = !uiState.mutacionEnCurso,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 OutlinedTextField(
                                     value = nuevaFecha,
-                                    onValueChange = { nuevaFecha = it },
-                                    label = { Text("Fecha") },
+                                    onValueChange = {
+                                        nuevaFecha = it
+                                        viewModel.limpiarErrorEvento(CampoEventoPost.FECHA)
+                                    },
+                                    label = { Text("Fecha (AAAA-MM-DD)") },
                                     singleLine = true,
+                                    isError = uiState.erroresEvento.fecha != null,
+                                    supportingText = uiState.erroresEvento.fecha?.let {
+                                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    },
                                     enabled = !uiState.mutacionEnCurso,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 OutlinedTextField(
                                     value = nuevaUbicacion,
-                                    onValueChange = { nuevaUbicacion = it },
+                                    onValueChange = {
+                                        nuevaUbicacion = it
+                                        viewModel.limpiarErrorEvento(CampoEventoPost.UBICACION)
+                                    },
                                     label = { Text("Comuna / ubicación") },
                                     singleLine = true,
+                                    isError = uiState.erroresEvento.ubicacion != null,
+                                    supportingText = uiState.erroresEvento.ubicacion?.let {
+                                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    },
                                     enabled = !uiState.mutacionEnCurso,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 OutlinedTextField(
                                     value = nuevaOrganizacion,
-                                    onValueChange = { nuevaOrganizacion = it },
+                                    onValueChange = {
+                                        nuevaOrganizacion = it
+                                        viewModel.limpiarErrorEvento(CampoEventoPost.ORGANIZACION)
+                                    },
                                     label = { Text("Organización") },
                                     singleLine = true,
+                                    isError = uiState.erroresEvento.organizacion != null,
+                                    supportingText = uiState.erroresEvento.organizacion?.let {
+                                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    },
                                     enabled = !uiState.mutacionEnCurso,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -228,6 +266,8 @@ fun PublicacionesExternasScreen(
                             TarjetaPublicacion(
                                 publicacion = publicacion,
                                 mutacionEnCurso = uiState.mutacionEnCurso,
+                                errores = uiState.erroresPublicacion,
+                                onLimpiarError = viewModel::limpiarErrorPublicacion,
                                 onActualizar = { titulo, contenido ->
                                     viewModel.actualizarPublicacion(
                                         publicacion,
@@ -252,6 +292,8 @@ fun PublicacionesExternasScreen(
 private fun TarjetaPublicacion(
     publicacion: PostResponse,
     mutacionEnCurso: Boolean,
+    errores: PublicacionErrores,
+    onLimpiarError: (CampoPublicacion) -> Unit,
     onActualizar: (String, String) -> Unit,
     onEliminar: () -> Unit,
     modifier: Modifier = Modifier
@@ -275,16 +317,30 @@ private fun TarjetaPublicacion(
             if (editando) {
                 OutlinedTextField(
                     value = titulo,
-                    onValueChange = { titulo = it },
+                    onValueChange = {
+                        titulo = it
+                        onLimpiarError(CampoPublicacion.TITULO)
+                    },
                     label = { Text("Editar título") },
                     singleLine = true,
+                    isError = errores.titulo != null,
+                    supportingText = errores.titulo?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     enabled = !mutacionEnCurso,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = contenido,
-                    onValueChange = { contenido = it },
+                    onValueChange = {
+                        contenido = it
+                        onLimpiarError(CampoPublicacion.CONTENIDO)
+                    },
                     label = { Text("Editar contenido") },
+                    isError = errores.contenido != null,
+                    supportingText = errores.contenido?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     enabled = !mutacionEnCurso,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -324,6 +380,8 @@ private fun TarjetaPublicacion(
                         onClick = {
                             titulo = publicacion.title
                             contenido = publicacion.body
+                            onLimpiarError(CampoPublicacion.TITULO)
+                            onLimpiarError(CampoPublicacion.CONTENIDO)
                             editando = false
                         },
                         enabled = !mutacionEnCurso

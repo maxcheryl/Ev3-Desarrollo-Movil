@@ -129,7 +129,7 @@ fun OrganizacionFormScreen(
             CampoTextoFormulario(
                 label = "Sitio web",
                 value = editor.form.sitioWeb,
-                error = null,
+                error = editor.errores.sitioWeb,
                 onValueChange = viewModel::onSitioWebChange,
                 keyboardType = KeyboardType.Uri
             )
@@ -137,7 +137,7 @@ fun OrganizacionFormScreen(
             CampoTextoFormulario(
                 label = "Observaciones",
                 value = editor.form.observaciones,
-                error = null,
+                error = editor.errores.observaciones,
                 onValueChange = viewModel::onObservacionesChange,
                 singleLine = false
             )

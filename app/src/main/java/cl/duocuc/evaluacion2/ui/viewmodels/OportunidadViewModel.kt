@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.DatabaseSeed
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
+import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PerfilUsuario
+import cl.duocuc.evaluacion2.data.model.Prioridad
 import cl.duocuc.evaluacion2.data.repository.OportunidadRepository
 import cl.duocuc.evaluacion2.data.session.SessionManager
 import cl.duocuc.evaluacion2.validation.OportunidadValidator
@@ -53,7 +55,11 @@ class OportunidadViewModel(
 
     val esSupervisor: StateFlow<Boolean> = sessionManager.usuario
         .map { it?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            sessionManager.actual?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL
+        )
 
     private val _cargando = MutableStateFlow(true)
     val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
@@ -80,6 +86,12 @@ class OportunidadViewModel(
 
     /** Prepara el formulario para una oportunidad nueva. */
     fun beginNueva() {
+        if (sessionManager.actual?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL) {
+            _editor.value = OportunidadEditorUiState(
+                mensajeError = "El Supervisor comercial no puede crear oportunidades."
+            )
+            return
+        }
         _editor.value = OportunidadEditorUiState(
             form = OportunidadFormState(
                 responsableId = sessionManager.actual?.id,
@@ -97,7 +109,7 @@ class OportunidadViewModel(
             }
             return
         }
-        if (!puedeGestionar(existente)) {
+        if (!puedeEditarCompleto(existente)) {
             _editor.update {
                 it.copy(mensajeError = "No tienes permiso para editar esta oportunidad.")
             }
@@ -194,13 +206,19 @@ class OportunidadViewModel(
 
     fun onObservacionesChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(observaciones = valor))
+            it.copy(
+                form = it.form.copy(observaciones = valor),
+                errores = it.errores.copy(observaciones = null)
+            )
         }
     }
 
     fun onPublicoEsperadoChange(valor: String) {
         _editor.update {
-            it.copy(form = it.form.copy(publicoEsperado = valor))
+            it.copy(
+                form = it.form.copy(publicoEsperado = valor),
+                errores = it.errores.copy(publicoEsperado = null)
+            )
         }
     }
 
@@ -224,19 +242,28 @@ class OportunidadViewModel(
 
     fun onOrganizacionChange(valor: Long?) {
         _editor.update {
-            it.copy(form = it.form.copy(organizacionId = valor))
+            it.copy(
+                form = it.form.copy(organizacionId = valor),
+                errores = it.errores.copy(organizacionId = null)
+            )
         }
     }
 
     fun onContactoChange(valor: Long?) {
         _editor.update {
-            it.copy(form = it.form.copy(contactoId = valor))
+            it.copy(
+                form = it.form.copy(contactoId = valor),
+                errores = it.errores.copy(contactoId = null)
+            )
         }
     }
 
     fun onEventoChange(valor: Long?) {
         _editor.update {
-            it.copy(form = it.form.copy(eventoId = valor))
+            it.copy(
+                form = it.form.copy(eventoId = valor),
+                errores = it.errores.copy(eventoId = null)
+            )
         }
     }
 
@@ -246,6 +273,15 @@ class OportunidadViewModel(
         if (usuario == null) {
             _editor.update {
                 it.copy(mensajeError = "La sesión no está activa. Inicia sesión nuevamente.")
+            }
+            return
+        }
+        if (usuario.perfil != PerfilUsuario.EJECUTIVO_COMERCIAL) {
+            _editor.update {
+                it.copy(
+                    mensajeError = "El Supervisor comercial solo puede consultar, cambiar prioridad " +
+                        "o descartar oportunidades."
+                )
             }
             return
         }
@@ -261,7 +297,7 @@ class OportunidadViewModel(
                 }
                 return
             }
-            if (!puedeGestionar(existente)) {
+            if (!puedeEditarCompleto(existente)) {
                 _editor.update {
                     it.copy(mensajeError = "No tienes permiso para editar esta oportunidad.")
                 }
@@ -323,7 +359,11 @@ class OportunidadViewModel(
             onError("No se encontró la oportunidad para eliminarla.")
             return
         }
-        if (!puedeGestionar(existente)) {
+        if (sessionManager.actual?.perfil == PerfilUsuario.SUPERVISOR_COMERCIAL) {
+            onError("El Supervisor comercial debe descartar la oportunidad, no eliminarla.")
+            return
+        }
+        if (!puedeEditarCompleto(existente)) {
             onError("No tienes permiso para eliminar esta oportunidad.")
             return
         }
@@ -343,12 +383,79 @@ class OportunidadViewModel(
         }
     }
 
-    private fun puedeGestionar(oportunidad: OpportunityEntity): Boolean {
-        val usuario = sessionManager.actual ?: return false
-        return when (usuario.perfil) {
-            PerfilUsuario.SUPERVISOR_COMERCIAL -> true
-            PerfilUsuario.EJECUTIVO_COMERCIAL -> oportunidad.responsableId == usuario.id
+    fun cambiarPrioridad(
+        id: Long,
+        nuevaPrioridad: String,
+        onListo: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (Prioridad.entries.none { it.name == nuevaPrioridad }) {
+            onError("La prioridad seleccionada no es válida.")
+            return
         }
+        actualizarComoSupervisor(
+            id = id,
+            onListo = onListo,
+            onError = onError
+        ) { oportunidad ->
+            oportunidad.copy(prioridad = nuevaPrioridad)
+        }
+    }
+
+    fun descartarOportunidad(
+        id: Long,
+        onListo: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        actualizarComoSupervisor(
+            id = id,
+            onListo = onListo,
+            onError = onError
+        ) { oportunidad ->
+            oportunidad.copy(estado = EstadoGestion.OPORTUNIDAD_DESCARTADA.name)
+        }
+    }
+
+    private fun actualizarComoSupervisor(
+        id: Long,
+        onListo: () -> Unit,
+        onError: (String) -> Unit,
+        transformar: (OpportunityEntity) -> OpportunityEntity
+    ) {
+        val usuario = sessionManager.actual
+        if (usuario == null) {
+            onError("La sesión no está activa. Inicia sesión nuevamente.")
+            return
+        }
+        if (usuario.perfil != PerfilUsuario.SUPERVISOR_COMERCIAL) {
+            onError("Solo el Supervisor comercial puede cambiar prioridad o descartar.")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val existente = repository.buscarPorId(id)
+                if (existente == null) {
+                    onError("No se encontró la oportunidad solicitada.")
+                    return@launch
+                }
+                val actualizada = transformar(existente)
+                if (actualizada != existente) {
+                    repository.guardar(actualizada, usuario.id)
+                }
+                onListo()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onError("No se pudo actualizar la oportunidad: ${e.message}")
+            }
+        }
+    }
+
+    private fun puedeEditarCompleto(oportunidad: OpportunityEntity): Boolean {
+        val usuario = sessionManager.actual ?: return false
+        return usuario.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL &&
+            oportunidad.responsableId == usuario.id
     }
 
     companion object {

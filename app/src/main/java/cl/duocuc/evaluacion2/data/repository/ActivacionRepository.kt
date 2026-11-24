@@ -66,6 +66,14 @@ class ActivacionRepository(
             check(usuarioDao.buscarPorId(activacion.responsableId) != null) {
                 "Selecciona un responsable disponible."
             }
+            require((activacion.fecha ?: 0L) > 0L) {
+                "Selecciona la fecha de realización."
+            }
+            require(activacion.costo == null ||
+                (activacion.costo.isFinite() && activacion.costo >= 0)
+            ) {
+                "El costo debe ser un número igual o mayor que cero."
+            }
 
             val existente = activacionDao.obtenerPorOportunidad(activacion.oportunidadId)
             val id = if (existente == null) {
@@ -135,6 +143,25 @@ class ActivacionRepository(
                 oportunidad.estado == EstadoGestion.ACTIVACION_CANCELADA.name
         ) {
             "La oportunidad debe estar confirmada antes de registrar el resultado."
+        }
+        require(
+            nuevoEstado != EstadoGestion.ACTIVACION_REALIZADA.name ||
+                (fechaRealizacion ?: 0L) > 0L
+        ) {
+            "Selecciona la fecha de realización."
+        }
+        require(fechaRealizacion == null || fechaRealizacion > 0L) {
+            "Selecciona una fecha de realización válida."
+        }
+        require(
+            listOf(
+                asistentesEstimados,
+                contactosGenerados,
+                personasInteresadas,
+                inscripciones
+            ).all { it == null || it >= 0 }
+        ) {
+            "Las cantidades deben ser números iguales o mayores que cero."
         }
         val ahora = System.currentTimeMillis()
         val actual = resultadoDao.obtenerPorActivacion(activacionId)

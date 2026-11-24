@@ -19,6 +19,7 @@ class OportunidadValidatorTest : StringSpec({
     "Opciones de seleccion invalidas son rechazadas" { OportunidadValidatorTestCases().opcionesDeSeleccionInvalidasSonRechazadas() }
     "Observaciones es opcional" { OportunidadValidatorTestCases().observacionesEsOpcional() }
     "Nombre con espacios es recortado al validar" { OportunidadValidatorTestCases().nombreConEspaciosEsRecortadoAlValidar() }
+    "Fecha futura y textos extensos se rechazan" { OportunidadValidatorTestCases().fechaFuturaYTextosExtensosSeRechazan() }
 })
 
 private class OportunidadValidatorTestCases {
@@ -93,5 +94,20 @@ private class OportunidadValidatorTestCases {
     fun nombreConEspaciosEsRecortadoAlValidar() {
         val errores = OportunidadValidator.validar(formularioValido().copy(nombre = "   "))
         (errores.nombre) shouldNotBe null
+    }
+
+    fun fechaFuturaYTextosExtensosSeRechazan() {
+        val errores = OportunidadValidator.validar(
+            formularioValido().copy(
+                fechaCreacion = System.currentTimeMillis() + 86_400_000L,
+                publicoEsperado = "x".repeat(151),
+                observaciones = "x".repeat(2001),
+                organizacionId = -1
+            )
+        )
+        (errores.fechaIdentificacion) shouldNotBe null
+        (errores.publicoEsperado) shouldNotBe null
+        (errores.observaciones) shouldNotBe null
+        (errores.organizacionId) shouldNotBe null
     }
 }

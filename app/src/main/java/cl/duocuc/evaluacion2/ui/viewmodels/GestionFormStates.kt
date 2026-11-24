@@ -40,10 +40,26 @@ data class GestionFormState(
 data class GestionErrores(
     val tipo: String? = null,
     val estado: String? = null,
-    val descripcion: String? = null
+    val descripcion: String? = null,
+    val fechaGestion: String? = null,
+    val horaGestion: String? = null,
+    val proximaAccion: String? = null,
+    val fechaProximaAccion: String? = null,
+    val horaProximaAccion: String? = null,
+    val observaciones: String? = null
 ) {
     val hayErrores: Boolean
-        get() = listOf(tipo, estado, descripcion).any { it != null }
+        get() = listOf(
+            tipo,
+            estado,
+            descripcion,
+            fechaGestion,
+            horaGestion,
+            proximaAccion,
+            fechaProximaAccion,
+            horaProximaAccion,
+            observaciones
+        ).any { it != null }
 }
 
 data class GestionEditorUiState(

@@ -71,6 +71,7 @@ fun RegistrarGestionScreen(
 ) {
     val editor by viewModel.editor.collectAsState()
     val esEjecutivo by viewModel.esEjecutivo.collectAsState()
+    val puedeRegistrarSeguimiento by viewModel.puedeRegistrarSeguimiento.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(oportunidadId) {
@@ -191,17 +192,21 @@ fun RegistrarGestionScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (!esEjecutivo) {
+            if (!puedeRegistrarSeguimiento) {
                 Text(
-                    text = "Solo el Ejecutivo comercial puede registrar gestiones.",
+                    text = "No tienes permiso para registrar seguimientos.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
             }
 
             Text(
-                text = "Registra la acción comercial. El estado de la oportunidad solo cambiará " +
-                    "si seleccionas un estado resultante.",
+                text = if (esEjecutivo) {
+                    "Registra la acción comercial. El estado de la oportunidad solo cambiará " +
+                        "si seleccionas un estado resultante."
+                } else {
+                    "Registra un seguimiento general de supervisión para esta oportunidad."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -215,14 +220,16 @@ fun RegistrarGestionScreen(
                 onSelected = viewModel::onTipoChange
             )
 
-            CampoDropdownFormulario(
-                label = "Estado resultante (opcional)",
-                selected = editor.form.estado,
-                options = opcionesEstado,
-                placeholder = "Sin cambiar",
-                error = editor.errores.estado,
-                onSelected = viewModel::onEstadoChange
-            )
+            if (esEjecutivo) {
+                CampoDropdownFormulario(
+                    label = "Estado resultante (opcional)",
+                    selected = editor.form.estado,
+                    options = opcionesEstado,
+                    placeholder = "Sin cambiar",
+                    error = editor.errores.estado,
+                    onSelected = viewModel::onEstadoChange
+                )
+            }
 
             OutlinedTextField(
                 value = editor.form.fechaGestion?.let {
@@ -240,26 +247,37 @@ fun RegistrarGestionScreen(
                         )
                     }
                 },
+                isError = editor.errores.fechaGestion != null,
+                supportingText = editor.errores.fechaGestion?.let {
+                    { Text(it, color = MaterialTheme.colorScheme.error) }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedButton(
-                onClick = {
-                    abrirSelectorHora(
-                        editor.form.horaGestion.ifBlank {
-                            editor.form.fechaGestion?.let { formatoHora.format(Date(it)) }.orEmpty()
-                        },
-                        viewModel::onHoraGestionChange
+            Column {
+                OutlinedButton(
+                    onClick = {
+                        abrirSelectorHora(
+                            editor.form.horaGestion.ifBlank {
+                                editor.form.fechaGestion
+                                    ?.let { formatoHora.format(Date(it)) }.orEmpty()
+                            },
+                            viewModel::onHoraGestionChange
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Hora de la gestión: " +
+                            editor.form.horaGestion.ifBlank {
+                                editor.form.fechaGestion
+                                    ?.let { formatoHora.format(Date(it)) }.orEmpty()
+                            }
                     )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Hora de la gestión: " +
-                        editor.form.horaGestion.ifBlank {
-                            editor.form.fechaGestion?.let { formatoHora.format(Date(it)) }.orEmpty()
-                        }
-                )
+                }
+                editor.errores.horaGestion?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
             }
 
             CampoTextoFormulario(
@@ -273,7 +291,7 @@ fun RegistrarGestionScreen(
             CampoTextoFormulario(
                 label = "Próxima acción",
                 value = editor.form.proximaAccion,
-                error = null,
+                error = editor.errores.proximaAccion,
                 onValueChange = viewModel::onProximaAccionChange
             )
 
@@ -294,28 +312,37 @@ fun RegistrarGestionScreen(
                         )
                     }
                 },
+                isError = editor.errores.fechaProximaAccion != null,
+                supportingText = editor.errores.fechaProximaAccion?.let {
+                    { Text(it, color = MaterialTheme.colorScheme.error) }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedButton(
-                onClick = {
-                    abrirSelectorHora(
-                        editor.form.horaProximaAccion.ifBlank {
-                            editor.form.fechaProximaAccion
-                                ?.let { formatoHora.format(Date(it)) }.orEmpty()
-                        },
-                        viewModel::onHoraProximaAccionChange
+            Column {
+                OutlinedButton(
+                    onClick = {
+                        abrirSelectorHora(
+                            editor.form.horaProximaAccion.ifBlank {
+                                editor.form.fechaProximaAccion
+                                    ?.let { formatoHora.format(Date(it)) }.orEmpty()
+                            },
+                            viewModel::onHoraProximaAccionChange
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Hora del próximo seguimiento: " +
+                            editor.form.horaProximaAccion.ifBlank {
+                                editor.form.fechaProximaAccion
+                                    ?.let { formatoHora.format(Date(it)) } ?: "Seleccionar"
+                            }
                     )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Hora del próximo seguimiento: " +
-                        editor.form.horaProximaAccion.ifBlank {
-                            editor.form.fechaProximaAccion
-                                ?.let { formatoHora.format(Date(it)) } ?: "Seleccionar"
-                        }
-                )
+                }
+                editor.errores.horaProximaAccion?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
             }
 
             if (editor.form.fechaProximaAccion != null) {
@@ -330,7 +357,7 @@ fun RegistrarGestionScreen(
             CampoTextoFormulario(
                 label = "Observaciones",
                 value = editor.form.observaciones,
-                error = null,
+                error = editor.errores.observaciones,
                 onValueChange = viewModel::onObservacionesChange,
                 singleLine = false
             )
@@ -364,7 +391,7 @@ fun RegistrarGestionScreen(
                 Button(
                     onClick = { viewModel.guardar { onGuardado() } },
                     modifier = Modifier.weight(1f),
-                    enabled = !editor.guardando && esEjecutivo
+                    enabled = !editor.guardando && puedeRegistrarSeguimiento
                 ) {
                     if (editor.guardando) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp))

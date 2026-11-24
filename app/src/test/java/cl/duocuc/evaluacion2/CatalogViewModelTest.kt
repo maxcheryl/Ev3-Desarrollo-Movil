@@ -257,6 +257,8 @@ private class CatalogViewModelTestCases {
         viewModel.onNombreChange("Feria")
         viewModel.onFechaChange(1234)
         viewModel.onFechaTerminoChange(5678)
+        viewModel.onHoraInicioChange("09:00")
+        viewModel.onHoraTerminoChange("18:00")
         viewModel.onRegionChange("Metropolitana")
         viewModel.onComunaChange("Maipú")
         coEvery { repository.guardar(any()) } throws IllegalStateException("No se pudo persistir")
@@ -287,6 +289,8 @@ private class CatalogViewModelTestCases {
         id = id,
         nombre = "Feria",
         fecha = 1000,
+        horaInicio = "09:00",
+        horaTermino = "18:00",
         comuna = "Santiago",
         organizacionId = organizationId,
         fechaTermino = 2000,

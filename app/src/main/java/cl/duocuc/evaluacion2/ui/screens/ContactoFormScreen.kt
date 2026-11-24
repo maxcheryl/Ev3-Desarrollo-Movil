@@ -131,7 +131,7 @@ fun ContactoFormScreen(
             CampoTextoFormulario(
                 label = "Área",
                 value = editor.form.area,
-                error = null,
+                error = editor.errores.area,
                 onValueChange = viewModel::onAreaChange
             )
 
@@ -154,7 +154,7 @@ fun ContactoFormScreen(
             CampoTextoFormulario(
                 label = "Observaciones",
                 value = editor.form.observaciones,
-                error = null,
+                error = editor.errores.observaciones,
                 onValueChange = viewModel::onObservacionesChange,
                 singleLine = false
             )

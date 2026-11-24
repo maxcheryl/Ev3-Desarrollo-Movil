@@ -17,6 +17,14 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.text.ParsePosition
+import java.text.SimpleDateFormat
+import java.util.Locale
+
+enum class CampoPublicacion {
+    TITULO,
+    CONTENIDO
+}
 
 data class PostUiState(
     val cargando: Boolean = true,
@@ -24,8 +32,38 @@ data class PostUiState(
     val mensajeError: String? = null,
     val mutacionEnCurso: Boolean = false,
     val mensajeMutacion: String? = null,
-    val mutacionFallida: Boolean = false
+    val mutacionFallida: Boolean = false,
+    val erroresEvento: EventoPostErrores = EventoPostErrores(),
+    val erroresPublicacion: PublicacionErrores = PublicacionErrores()
 )
+
+data class EventoPostErrores(
+    val idEvento: String? = null,
+    val nombreEvento: String? = null,
+    val fecha: String? = null,
+    val ubicacion: String? = null,
+    val organizacion: String? = null
+) {
+    val hayErrores: Boolean
+        get() = listOf(idEvento, nombreEvento, fecha, ubicacion, organizacion)
+            .any { it != null }
+}
+
+data class PublicacionErrores(
+    val titulo: String? = null,
+    val contenido: String? = null
+) {
+    val hayErrores: Boolean
+        get() = titulo != null || contenido != null
+}
+
+enum class CampoEventoPost {
+    ID,
+    NOMBRE,
+    FECHA,
+    UBICACION,
+    ORGANIZACION
+}
 
 class PostViewModel(
     private val repository: PostRepository = PostRepository()
@@ -103,19 +141,35 @@ class PostViewModel(
         organizacion: String
     ) {
         val id = idEvento.trim().toIntOrNull()
-        if (id == null || id <= 0) {
-            informarErrorMutacion("Ingresa un ID de evento numérico mayor que cero.")
-            return
-        }
-        if (
-            nombreEvento.isBlank() ||
-            fecha.isBlank() ||
-            ubicacion.isBlank() ||
-            organizacion.isBlank()
-        ) {
-            informarErrorMutacion(
-                "Completa el nombre, fecha, comuna o ubicación y organización del evento."
-            )
+        val errores = EventoPostErrores(
+            idEvento = if (id == null || id <= 0) {
+                "Ingresa un ID de evento entero mayor que cero."
+            } else {
+                null
+            },
+            nombreEvento = when {
+                nombreEvento.isBlank() -> "El nombre del evento es obligatorio."
+                nombreEvento.trim().length < 3 -> "Ingresa al menos 3 caracteres."
+                nombreEvento.trim().length > 100 ->
+                    "El nombre no puede superar 100 caracteres."
+                else -> null
+            },
+            fecha = if (esFechaIsoValida(fecha.trim())) {
+                null
+            } else {
+                "Usa una fecha real con formato AAAA-MM-DD."
+            },
+            ubicacion = validarTextoEvento(ubicacion, "la comuna o ubicación"),
+            organizacion = validarTextoEvento(organizacion, "la organización")
+        )
+        if (errores.hayErrores) {
+            _uiState.update {
+                it.copy(
+                    erroresEvento = errores,
+                    mensajeMutacion = "Corrige los campos marcados antes de enviar el evento.",
+                    mutacionFallida = true
+                )
+            }
             return
         }
 
@@ -140,6 +194,44 @@ class PostViewModel(
                 estado.copy(
                     publicaciones = listOf(creado) +
                         estado.publicaciones.filterNot { it.id == creado.id }
+                )
+            }
+        }
+    }
+
+    fun limpiarErrorEvento(campo: CampoEventoPost) {
+        _uiState.update { state ->
+            val errores = when (campo) {
+                CampoEventoPost.ID -> state.erroresEvento.copy(idEvento = null)
+                CampoEventoPost.NOMBRE -> state.erroresEvento.copy(nombreEvento = null)
+                CampoEventoPost.FECHA -> state.erroresEvento.copy(fecha = null)
+                CampoEventoPost.UBICACION -> state.erroresEvento.copy(ubicacion = null)
+                CampoEventoPost.ORGANIZACION ->
+                    state.erroresEvento.copy(organizacion = null)
+            }
+            state.copy(
+                erroresEvento = errores,
+                mensajeMutacion = if (errores.hayErrores) state.mensajeMutacion else null,
+                mutacionFallida = errores.hayErrores
+            )
+        }
+    }
+
+    fun limpiarErrorPublicacion(campo: CampoPublicacion) {
+        _uiState.update { state ->
+            if (!state.erroresPublicacion.hayErrores) {
+                state
+            } else {
+                val errores = when (campo) {
+                    CampoPublicacion.TITULO ->
+                        state.erroresPublicacion.copy(titulo = null)
+                    CampoPublicacion.CONTENIDO ->
+                        state.erroresPublicacion.copy(contenido = null)
+                }
+                state.copy(
+                    erroresPublicacion = errores,
+                    mensajeMutacion = if (errores.hayErrores) state.mensajeMutacion else null,
+                    mutacionFallida = errores.hayErrores
                 )
             }
         }
@@ -181,10 +273,30 @@ class PostViewModel(
         contenido: String,
         userId: Int = 1
     ): PostRequest? {
-        if (titulo.isBlank() || contenido.isBlank()) {
+        val errores = PublicacionErrores(
+            titulo = when {
+                titulo.isBlank() -> "El título es obligatorio."
+                titulo.trim().length < 3 -> "El título debe tener al menos 3 caracteres."
+                titulo.trim().length > 100 -> "El título no puede superar 100 caracteres."
+                else -> null
+            },
+            contenido = when {
+                contenido.isBlank() -> "El contenido es obligatorio."
+                contenido.trim().length > 5000 ->
+                    "El contenido no puede superar 5.000 caracteres."
+                else -> null
+            }
+        )
+        if (errores.hayErrores) {
+            val mensaje = if (titulo.isBlank() || contenido.isBlank()) {
+                "El título y el contenido son obligatorios."
+            } else {
+                "Corrige los campos marcados antes de guardar."
+            }
             _uiState.update {
                 it.copy(
-                    mensajeMutacion = "El título y el contenido son obligatorios.",
+                    erroresPublicacion = errores,
+                    mensajeMutacion = mensaje,
                     mutacionFallida = true
                 )
             }
@@ -203,7 +315,9 @@ class PostViewModel(
                 it.copy(
                     mutacionEnCurso = true,
                     mensajeMutacion = null,
-                    mutacionFallida = false
+                    mutacionFallida = false,
+                    erroresEvento = EventoPostErrores(),
+                    erroresPublicacion = PublicacionErrores()
                 )
             }
             try {
@@ -245,6 +359,24 @@ class PostViewModel(
             )
         }
     }
+
+    private fun esFechaIsoValida(valor: String): Boolean {
+        if (!Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(valor)) return false
+        val formato = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply {
+            isLenient = false
+        }
+        val posicion = ParsePosition(0)
+        val fecha = formato.parse(valor, posicion)
+        return fecha != null && posicion.index == valor.length
+    }
+
+    private fun validarTextoEvento(valor: String, campo: String): String? =
+        when {
+            valor.isBlank() -> "Completa $campo."
+            valor.trim().length < 2 -> "Ingresa $campo en forma válida."
+            valor.trim().length > 150 -> "$campo no puede superar 150 caracteres."
+            else -> null
+        }
 
     companion object {
         fun factory(): ViewModelProvider.Factory =

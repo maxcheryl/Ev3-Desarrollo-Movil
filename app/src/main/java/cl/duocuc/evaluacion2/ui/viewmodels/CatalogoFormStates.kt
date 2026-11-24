@@ -12,10 +12,12 @@ data class OrganizacionFormState(
 data class OrganizacionErrores(
     val nombre: String? = null,
     val tipo: String? = null,
-    val comuna: String? = null
+    val comuna: String? = null,
+    val sitioWeb: String? = null,
+    val observaciones: String? = null
 ) {
     val hayErrores: Boolean
-        get() = listOf(nombre, tipo, comuna).any { it != null }
+        get() = listOf(nombre, tipo, comuna, sitioWeb, observaciones).any { it != null }
 }
 
 data class ContactoFormState(
@@ -34,10 +36,20 @@ data class ContactoErrores(
     val organizacionId: String? = null,
     val cargo: String? = null,
     val correo: String? = null,
-    val telefono: String? = null
+    val telefono: String? = null,
+    val area: String? = null,
+    val observaciones: String? = null
 ) {
     val hayErrores: Boolean
-        get() = listOf(nombre, organizacionId, cargo, correo, telefono).any { it != null }
+        get() = listOf(
+            nombre,
+            organizacionId,
+            cargo,
+            correo,
+            telefono,
+            area,
+            observaciones
+        ).any { it != null }
 }
 
 data class EventoFormState(
@@ -71,7 +83,16 @@ data class EventoErrores(
     val comuna: String? = null,
     val organizacionId: String? = null,
     val asistentesEstimados: String? = null,
-    val costoReferencial: String? = null
+    val costoReferencial: String? = null,
+    val horaInicio: String? = null,
+    val horaTermino: String? = null,
+    val direccion: String? = null,
+    val descripcion: String? = null,
+    val publicoEsperado: String? = null,
+    val publicoObjetivo: String? = null,
+    val condicionesParticipacion: String? = null,
+    val requisitos: String? = null,
+    val espaciosDisponibles: String? = null
 ) {
     val hayErrores: Boolean
         get() = listOf(
@@ -83,6 +104,15 @@ data class EventoErrores(
             comuna,
             organizacionId,
             asistentesEstimados,
-            costoReferencial
+            costoReferencial,
+            horaInicio,
+            horaTermino,
+            direccion,
+            descripcion,
+            publicoEsperado,
+            publicoObjetivo,
+            condicionesParticipacion,
+            requisitos,
+            espaciosDisponibles
         ).any { it != null }
 }

@@ -2,6 +2,7 @@ package cl.duocuc.evaluacion2
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.doubles.plusOrMinus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -140,6 +141,7 @@ private class ActivacionViewModelTestCases {
         viewModel.cargar(4)
         advanceUntilIdle()
 
+        viewModel.onFechaChange(500)
         viewModel.onCostoChange("")
         viewModel.guardarCoordinacion()
         advanceUntilIdle()
@@ -154,11 +156,11 @@ private class ActivacionViewModelTestCases {
 
         viewModel.onCostoChange("-1")
         viewModel.guardarCoordinacion()
-        (viewModel.uiState.value.mensajeError.orEmpty().contains("mayor que cero")) shouldBe true
+        (viewModel.uiState.value.errores.costo) shouldNotBe null
 
         viewModel.onCostoChange("abc")
         viewModel.guardarCoordinacion()
-        (viewModel.uiState.value.mensajeError.orEmpty().contains("número")) shouldBe true
+        (viewModel.uiState.value.errores.costo) shouldNotBe null
     }
 
     fun guardarCoordinacionValidaSesionResponsableYRecortaCampos() = runTest {
@@ -176,7 +178,7 @@ private class ActivacionViewModelTestCases {
         viewModel.cargar(4)
         advanceUntilIdle()
         viewModel.guardarCoordinacion()
-        (viewModel.uiState.value.mensajeError.orEmpty().contains("responsable")) shouldBe true
+        (viewModel.uiState.value.errores.responsable) shouldNotBe null
 
         val validRepo = repository()
         coEvery { validRepo.guardarActivacion(any(), 1) } returns 55
@@ -184,8 +186,12 @@ private class ActivacionViewModelTestCases {
         advanceUntilIdle()
         validVm.cargar(4)
         advanceUntilIdle()
+        validVm.guardarCoordinacion()
+        (validVm.uiState.value.errores.fecha) shouldNotBe null
+        coVerify(exactly = 0) { validRepo.guardarActivacion(any(), any()) }
         validVm.onEspacioChange("  Plaza  ")
         validVm.onRequisitosChange("  Permiso municipal  ")
+        validVm.onFechaChange(500)
         validVm.guardarCoordinacion()
         validVm.guardarCoordinacion()
         advanceUntilIdle()
@@ -254,13 +260,15 @@ private class ActivacionViewModelTestCases {
             )
         } returns 77
         validVm.onResultadoFinalChange(EstadoGestion.ACTIVACION_REALIZADA.name)
+        validVm.guardarResultado()
+        (validVm.uiState.value.errores.fechaRealizacion) shouldNotBe null
         validVm.onObservacionesChange("  Confirmada  ")
         validVm.onImpactoChange("  Positivo  ")
         validVm.onFechaRealizacionChange(500)
         validVm.onAsistentesEstimadosChange("120")
         validVm.onContactosGeneradosChange("-1")
         validVm.guardarResultado()
-        (validVm.uiState.value.mensajeError.orEmpty().contains("mayores que cero")) shouldBe true
+        (validVm.uiState.value.errores.contactosGenerados) shouldNotBe null
         validVm.onContactosGeneradosChange("30")
         validVm.onPersonasInteresadasChange("20")
         validVm.onInscripcionesChange("12")

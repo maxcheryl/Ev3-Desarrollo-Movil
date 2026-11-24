@@ -112,7 +112,11 @@ class EventoViewModel(
         _editor.update {
             it.copy(
                 form = it.form.copy(fecha = valor),
-                errores = it.errores.copy(fecha = null)
+                errores = it.errores.copy(
+                    fecha = null,
+                    fechaTermino = null,
+                    horaTermino = null
+                )
             )
         }
     }
@@ -126,18 +130,30 @@ class EventoViewModel(
         }
     }
 
-    fun onDescripcionChange(valor: String) = cambiar { it.copy(descripcion = valor) }
+    fun onDescripcionChange(valor: String) = cambiar(
+        transform = { it.copy(descripcion = valor) },
+        limpiarError = { it.copy(descripcion = null) }
+    )
     fun onFechaTerminoChange(valor: Long) {
         _editor.update {
             it.copy(
                 form = it.form.copy(fechaTermino = valor),
-                errores = it.errores.copy(fechaTermino = null)
+                errores = it.errores.copy(fechaTermino = null, horaTermino = null)
             )
         }
     }
-    fun onHoraInicioChange(valor: String) = cambiar { it.copy(horaInicio = valor) }
-    fun onHoraTerminoChange(valor: String) = cambiar { it.copy(horaTermino = valor) }
-    fun onDireccionChange(valor: String) = cambiar { it.copy(direccion = valor) }
+    fun onHoraInicioChange(valor: String) = cambiar(
+        transform = { it.copy(horaInicio = valor) },
+        limpiarError = { it.copy(horaInicio = null, horaTermino = null) }
+    )
+    fun onHoraTerminoChange(valor: String) = cambiar(
+        transform = { it.copy(horaTermino = valor) },
+        limpiarError = { it.copy(horaTermino = null) }
+    )
+    fun onDireccionChange(valor: String) = cambiar(
+        transform = { it.copy(direccion = valor) },
+        limpiarError = { it.copy(direccion = null) }
+    )
     fun onRegionChange(valor: String) {
         _editor.update {
             it.copy(
@@ -146,7 +162,10 @@ class EventoViewModel(
             )
         }
     }
-    fun onPublicoEsperadoChange(valor: String) = cambiar { it.copy(publicoEsperado = valor) }
+    fun onPublicoEsperadoChange(valor: String) = cambiar(
+        transform = { it.copy(publicoEsperado = valor) },
+        limpiarError = { it.copy(publicoEsperado = null) }
+    )
     fun onAsistentesEstimadosChange(valor: String) {
         _editor.update {
             it.copy(
@@ -155,8 +174,14 @@ class EventoViewModel(
             )
         }
     }
-    fun onCondicionesChange(valor: String) = cambiar { it.copy(condicionesParticipacion = valor) }
-    fun onRequisitosChange(valor: String) = cambiar { it.copy(requisitos = valor) }
+    fun onCondicionesChange(valor: String) = cambiar(
+        transform = { it.copy(condicionesParticipacion = valor) },
+        limpiarError = { it.copy(condicionesParticipacion = null) }
+    )
+    fun onRequisitosChange(valor: String) = cambiar(
+        transform = { it.copy(requisitos = valor) },
+        limpiarError = { it.copy(requisitos = null) }
+    )
     fun onCostoReferencialChange(valor: String) {
         _editor.update {
             it.copy(
@@ -165,13 +190,19 @@ class EventoViewModel(
             )
         }
     }
-    fun onEspaciosDisponiblesChange(valor: String) = cambiar { it.copy(espaciosDisponibles = valor) }
+    fun onEspaciosDisponiblesChange(valor: String) = cambiar(
+        transform = { it.copy(espaciosDisponibles = valor) },
+        limpiarError = { it.copy(espaciosDisponibles = null) }
+    )
 
     fun onPublicoObjetivoChange(valor: String, seleccionado: Boolean) {
         _editor.update { state ->
             val seleccionados = state.form.publicoObjetivo.toMutableSet()
             if (seleccionado) seleccionados.add(valor) else seleccionados.remove(valor)
-            state.copy(form = state.form.copy(publicoObjetivo = seleccionados.toList()))
+            state.copy(
+                form = state.form.copy(publicoObjetivo = seleccionados.toList()),
+                errores = state.errores.copy(publicoObjetivo = null)
+            )
         }
     }
 
@@ -193,8 +224,16 @@ class EventoViewModel(
         }
     }
 
-    private fun cambiar(transform: (EventoFormState) -> EventoFormState) {
-        _editor.update { state -> state.copy(form = transform(state.form)) }
+    private fun cambiar(
+        transform: (EventoFormState) -> EventoFormState,
+        limpiarError: (EventoErrores) -> EventoErrores = { it }
+    ) {
+        _editor.update { state ->
+            state.copy(
+                form = transform(state.form),
+                errores = limpiarError(state.errores)
+            )
+        }
     }
 
     fun guardar(oportunidadId: Long? = null, onListo: (Long) -> Unit) {

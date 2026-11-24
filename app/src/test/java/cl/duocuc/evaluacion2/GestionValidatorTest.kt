@@ -14,6 +14,8 @@ class GestionValidatorTest : StringSpec({
     "Estado resultante es opcional" { GestionValidatorTestCases().estadoResultanteEsOpcional() }
     "Tipo y estado invalidos son rechazados" { GestionValidatorTestCases().tipoYEstadoInvalidosSonRechazados() }
     "Proxima accion y fecha son opcionales" { GestionValidatorTestCases().proximaAccionYFechaSonOpcionales() }
+    "Proxima accion y fecha deben ser coherentes" { GestionValidatorTestCases().proximaAccionDebeTenerFechaPosterior() }
+    "Fecha de gestion futura se rechaza" { GestionValidatorTestCases().fechaDeGestionFuturaSeRechaza() }
 })
 
 private class GestionValidatorTestCases {
@@ -21,7 +23,7 @@ private class GestionValidatorTestCases {
     private fun formularioValido() = GestionFormState(
         tipo = TipoAccionSeguimiento.PRIMER_CONTACTO.name,
         estado = EstadoGestion.CONTACTO_REALIZADO.name,
-        descripcion = "Llamada con la organización para coordinar la propuesta."
+        resultado = "Llamada con la organización para coordinar la propuesta."
     )
 
     fun formularioValidoNoTieneErrores() {
@@ -57,11 +59,35 @@ private class GestionValidatorTestCases {
         val errores = GestionValidator.validar(
             formularioValido().copy(
                 proximaAccion = "",
-                fechaProximaAccion = null,
-                resultado = ""
+                fechaProximaAccion = null
             )
         )
-
         (errores.hayErrores) shouldBe false
+    }
+
+    fun proximaAccionDebeTenerFechaPosterior() {
+        val fecha = formularioValido().fechaGestion ?: 0L
+        val sinFecha = GestionValidator.validar(
+            formularioValido().copy(proximaAccion = "Enviar propuesta", fechaProximaAccion = null)
+        )
+        (sinFecha.proximaAccion) shouldNotBe null
+
+        val fechaAnterior = GestionValidator.validar(
+            formularioValido().copy(
+                proximaAccion = "Enviar propuesta",
+                fechaProximaAccion = fecha - 86_400_000L
+            )
+        )
+        (fechaAnterior.fechaProximaAccion) shouldNotBe null
+    }
+
+    fun fechaDeGestionFuturaSeRechaza() {
+        val errores = GestionValidator.validar(
+            formularioValido().copy(
+                fechaGestion = System.currentTimeMillis() + 86_400_000L,
+                horaGestion = "09:00"
+            )
+        )
+        (errores.fechaGestion) shouldNotBe null
     }
 }

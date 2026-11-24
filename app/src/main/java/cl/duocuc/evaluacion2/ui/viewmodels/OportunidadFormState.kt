@@ -36,7 +36,12 @@ data class OportunidadErrores(
     val potencialComercial: String? = null,
     val estado: String? = null,
     val fechaIdentificacion: String? = null,
-    val comuna: String? = null
+    val comuna: String? = null,
+    val publicoEsperado: String? = null,
+    val observaciones: String? = null,
+    val organizacionId: String? = null,
+    val contactoId: String? = null,
+    val eventoId: String? = null
 ) {
     val hayErrores: Boolean
         get() = listOf(
@@ -48,7 +53,12 @@ data class OportunidadErrores(
             potencialComercial,
             estado,
             fechaIdentificacion,
-            comuna
+            comuna,
+            publicoEsperado,
+            observaciones,
+            organizacionId,
+            contactoId,
+            eventoId
         ).any { it != null }
 }
 

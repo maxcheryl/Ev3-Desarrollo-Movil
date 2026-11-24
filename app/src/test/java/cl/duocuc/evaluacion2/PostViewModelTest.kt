@@ -146,6 +146,8 @@ private class PostViewModelTestCases {
         viewModel.crearPublicacion(" ", "Contenido")
         (viewModel.uiState.value.mutacionFallida) shouldBe true
         (viewModel.uiState.value.mensajeMutacion.orEmpty().contains("obligatorios")) shouldBe true
+        (viewModel.uiState.value.erroresPublicacion.titulo) shouldBe
+            ("El título es obligatorio.")
         coVerify(exactly = 0) { repository.crearPublicacion(any()) }
     }
 
@@ -186,6 +188,11 @@ private class PostViewModelTestCases {
         viewModel.crearEvento("abc", "Feria", "2025-11-18", "Providencia", "Agencia")
         advanceUntilIdle()
         (viewModel.uiState.value.mutacionFallida) shouldBe true
+        coVerify(exactly = 1) { repository.crearPublicacion(any()) }
+
+        viewModel.crearEvento("42", "Feria", "2025-02-30", "Providencia", "Agencia")
+        (viewModel.uiState.value.erroresEvento.fecha) shouldBe
+            ("Usa una fecha real con formato AAAA-MM-DD.")
         coVerify(exactly = 1) { repository.crearPublicacion(any()) }
     }
 

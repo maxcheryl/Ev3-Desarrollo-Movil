@@ -28,6 +28,7 @@ class LoginViewModelTest : StringSpec({
     afterSpec { Dispatchers.resetMain() }
 
     "Campos vacios impiden intentar autenticar" { LoginViewModelTestCases().camposVaciosImpidenIntentarAutenticar() }
+    "Correo con formato invalido no intenta autenticar" { LoginViewModelTestCases().correoConFormatoInvalidoNoIntentaAutenticar() }
     "Credenciales incorrectas muestran error" { LoginViewModelTestCases().credencialesIncorrectasMuestranError() }
     "Excepcion del repositorio se informa" { LoginViewModelTestCases().excepcionDelRepositorioSeInforma() }
     "Ingreso exitoso inicia sesion y restablece formulario" { LoginViewModelTestCases().ingresoExitosoIniciaSesionYRestableceFormulario() }
@@ -62,6 +63,18 @@ private class LoginViewModelTestCases {
 
         (viewModel.estado.value.mensajeError) shouldBe ("Correo o contraseña incorrectos.")
         (viewModel.estado.value.cargando) shouldBe false
+    }
+
+    fun correoConFormatoInvalidoNoIntentaAutenticar() = runTest {
+        val repository = mockk<UsuarioRepository>()
+        val viewModel = LoginViewModel(repository, SessionManager())
+        viewModel.onCorreoChange("correo-invalido")
+        viewModel.onClaveChange("secret")
+
+        viewModel.ingresar {}
+
+        (viewModel.estado.value.correoError) shouldNotBe null
+        coVerify(exactly = 0) { repository.autenticar(any(), any()) }
     }
 
     fun excepcionDelRepositorioSeInforma() = runTest {
