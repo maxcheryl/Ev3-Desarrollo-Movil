@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import cl.duocuc.evaluacion2.data.local.ActivacionEntity
 import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.EvidenciaEntity
+import cl.duocuc.evaluacion2.data.local.EventoEntity
 import cl.duocuc.evaluacion2.data.local.ResultadoEntity
 import cl.duocuc.evaluacion2.data.local.UsuarioEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
@@ -24,17 +25,25 @@ data class ActivacionUiState(
     val oportunidadNombre: String = "",
     val activacionId: Long? = null,
     val evidencias: List<EvidenciaEntity> = emptyList(),
+    val evento: EventoEntity? = null,
     val resultadoGuardado: ResultadoEntity? = null,
     val usuarios: List<UsuarioEntity> = emptyList(),
     val participacionConfirmada: Boolean = false,
+    val oportunidadConfirmada: Boolean = false,
     val responsableId: Long? = null,
     val espacio: String = "",
     val fecha: Long? = null,
     val costo: String = "",
     val requisitos: String = "",
+    val observacionesCoordinacion: String = "",
     val resultadoFinal: String = "",
     val observaciones: String = "",
     val impacto: String = "",
+    val fechaRealizacion: Long? = null,
+    val asistentesEstimados: String = "",
+    val contactosGenerados: String = "0",
+    val personasInteresadas: String = "0",
+    val inscripciones: String = "0",
     val cargando: Boolean = true,
     val guardando: Boolean = false,
     val mensajeError: String? = null,
@@ -75,13 +84,20 @@ class ActivacionViewModel(
                 val resultado = activacion?.let {
                     repository.obtenerResultado(it.id)
                 }
+                val evento = oportunidad.eventoId?.let { repository.obtenerEvento(it) }
                 _uiState.update {
                     it.copy(
                         oportunidadNombre = oportunidad.nombre,
                         activacionId = activacion?.id,
                         evidencias = evidencias,
+                        evento = evento,
                         resultadoGuardado = resultado,
                         participacionConfirmada = activacion?.participacionConfirmada ?: false,
+                        oportunidadConfirmada = oportunidad.estado in setOf(
+                            EstadoGestion.PARTICIPACION_CONFIRMADA.name,
+                            EstadoGestion.ACTIVACION_REALIZADA.name,
+                            EstadoGestion.ACTIVACION_CANCELADA.name
+                        ),
                         responsableId = activacion?.responsableId
                             ?: sessionManager.actual?.id
                             ?: it.usuarios.firstOrNull()?.id,
@@ -89,13 +105,24 @@ class ActivacionViewModel(
                         fecha = activacion?.fecha,
                         costo = activacion?.costo?.toString().orEmpty(),
                         requisitos = activacion?.requisitos.orEmpty(),
+                        observacionesCoordinacion =
+                            activacion?.observacionesCoordinacion.orEmpty(),
                         resultadoFinal = resultado?.resultado
+                            ?.takeIf {
+                                it == EstadoGestion.ACTIVACION_REALIZADA.name ||
+                                    it == EstadoGestion.ACTIVACION_CANCELADA.name
+                            }
                             ?: oportunidad.estado.takeIf {
-                                it == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
-                                    it == EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+                                it == EstadoGestion.ACTIVACION_REALIZADA.name ||
+                                    it == EstadoGestion.ACTIVACION_CANCELADA.name
                             }.orEmpty(),
                         observaciones = resultado?.observaciones.orEmpty(),
                         impacto = resultado?.impacto.orEmpty(),
+                        fechaRealizacion = resultado?.fechaRealizacion,
+                        asistentesEstimados = resultado?.asistentesEstimados?.toString().orEmpty(),
+                        contactosGenerados = resultado?.contactosGenerados?.toString() ?: "0",
+                        personasInteresadas = resultado?.personasInteresadas?.toString() ?: "0",
+                        inscripciones = resultado?.inscripciones?.toString() ?: "0",
                         cargando = false,
                         mensajeError = null
                     )
@@ -118,9 +145,19 @@ class ActivacionViewModel(
     fun onFechaChange(valor: Long?) = cambiar { it.copy(fecha = valor) }
     fun onCostoChange(valor: String) = cambiar { it.copy(costo = valor) }
     fun onRequisitosChange(valor: String) = cambiar { it.copy(requisitos = valor) }
+    fun onObservacionesCoordinacionChange(valor: String) =
+        cambiar { it.copy(observacionesCoordinacion = valor) }
     fun onResultadoFinalChange(valor: String) = cambiar { it.copy(resultadoFinal = valor) }
     fun onObservacionesChange(valor: String) = cambiar { it.copy(observaciones = valor) }
     fun onImpactoChange(valor: String) = cambiar { it.copy(impacto = valor) }
+    fun onFechaRealizacionChange(valor: Long?) = cambiar { it.copy(fechaRealizacion = valor) }
+    fun onAsistentesEstimadosChange(valor: String) =
+        cambiar { it.copy(asistentesEstimados = valor) }
+    fun onContactosGeneradosChange(valor: String) =
+        cambiar { it.copy(contactosGenerados = valor) }
+    fun onPersonasInteresadasChange(valor: String) =
+        cambiar { it.copy(personasInteresadas = valor) }
+    fun onInscripcionesChange(valor: String) = cambiar { it.copy(inscripciones = valor) }
 
     fun agregarEvidencia(tipo: String, nombre: String, uri: String) {
         val state = _uiState.value
@@ -177,6 +214,10 @@ class ActivacionViewModel(
             return
         }
         if (state.guardando) return
+        if (!state.oportunidadConfirmada) {
+            informarError("La oportunidad debe estar confirmada antes de coordinar la activación.")
+            return
+        }
 
         cambiar { it.copy(guardando = true, mensajeError = null, mensajeExito = null) }
         viewModelScope.launch {
@@ -190,7 +231,8 @@ class ActivacionViewModel(
                         espacio = state.espacio.trim(),
                         fecha = state.fecha,
                         costo = costo,
-                        requisitos = state.requisitos.trim()
+                        requisitos = state.requisitos.trim(),
+                        observacionesCoordinacion = state.observacionesCoordinacion.trim()
                     ),
                     usuarioId
                 )
@@ -227,10 +269,23 @@ class ActivacionViewModel(
             informarError("La sesión no está activa. Inicia sesión nuevamente.")
             return
         }
-        if (state.resultadoFinal != EstadoGestion.PARTICIPACION_CONFIRMADA.name &&
-            state.resultadoFinal != EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+        if (state.resultadoFinal != EstadoGestion.ACTIVACION_REALIZADA.name &&
+            state.resultadoFinal != EstadoGestion.ACTIVACION_CANCELADA.name
         ) {
             informarError("Selecciona el resultado final de la oportunidad.")
+            return
+        }
+        val asistentesEstimados = state.asistentesEstimados.toIntOrNull()
+        val contactosGenerados = cantidadOpcional(state.contactosGenerados)
+        val personasInteresadas = cantidadOpcional(state.personasInteresadas)
+        val inscripciones = cantidadOpcional(state.inscripciones)
+        if (state.asistentesEstimados.isNotBlank() &&
+            (asistentesEstimados == null || asistentesEstimados < 0) ||
+            contactosGenerados == null || contactosGenerados < 0 ||
+            personasInteresadas == null || personasInteresadas < 0 ||
+            inscripciones == null || inscripciones < 0
+        ) {
+            informarError("Las cantidades deben ser números iguales o mayores que cero.")
             return
         }
         if (state.guardando) return
@@ -244,7 +299,12 @@ class ActivacionViewModel(
                     observaciones = state.observaciones.trim(),
                     impacto = state.impacto.trim(),
                     nuevoEstado = state.resultadoFinal,
-                    usuarioId = usuarioId
+                    usuarioId = usuarioId,
+                    fechaRealizacion = state.fechaRealizacion,
+                    asistentesEstimados = asistentesEstimados,
+                    contactosGenerados = contactosGenerados,
+                    personasInteresadas = personasInteresadas,
+                    inscripciones = inscripciones
                 )
                 _uiState.update {
                     it.copy(
@@ -252,13 +312,18 @@ class ActivacionViewModel(
                             activacionId = activacionId,
                             resultado = state.resultadoFinal,
                             observaciones = state.observaciones.trim(),
-                            impacto = state.impacto.trim()
+                            impacto = state.impacto.trim(),
+                            fechaRealizacion = state.fechaRealizacion,
+                            asistentesEstimados = asistentesEstimados,
+                            contactosGenerados = contactosGenerados,
+                            personasInteresadas = personasInteresadas,
+                            inscripciones = inscripciones
                         ),
                         participacionConfirmada =
-                            state.resultadoFinal == EstadoGestion.PARTICIPACION_CONFIRMADA.name,
+                            state.resultadoFinal == EstadoGestion.ACTIVACION_REALIZADA.name,
                         guardando = false,
                         mensajeError = null,
-                        mensajeExito = "Resultado guardado y oportunidad cerrada."
+                        mensajeExito = "Resultado de activación guardado."
                     )
                 }
             } catch (e: CancellationException) {
@@ -281,6 +346,9 @@ class ActivacionViewModel(
     private fun informarError(mensaje: String) {
         _uiState.update { it.copy(mensajeError = mensaje, mensajeExito = null) }
     }
+
+    private fun cantidadOpcional(valor: String): Int? =
+        if (valor.isBlank()) 0 else valor.toIntOrNull()
 
     companion object {
         fun factory(

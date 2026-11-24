@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Contacts
-import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,14 +29,15 @@ fun CatalogosScreen(
     onVolver: () -> Unit,
     onOrganizaciones: () -> Unit,
     onContactos: () -> Unit,
-    onEventos: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Catálogos", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text("Organizaciones y contactos", fontWeight = FontWeight.SemiBold)
+                },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -55,14 +55,14 @@ fun CatalogosScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Datos de referencia",
+                text = "Organizaciones y contactos",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
 
             Text(
-                text = "Administra las organizaciones, sus contactos y los eventos asociados.",
+                text = "Administra las organizaciones y las personas de contacto asociadas.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -79,13 +79,6 @@ fun CatalogosScreen(
                 titulo = "Contactos",
                 descripcion = "Personas de contacto dentro de cada organización.",
                 onClick = onContactos
-            )
-
-            TarjetaAcceso(
-                icono = Icons.Outlined.Event,
-                titulo = "Eventos",
-                descripcion = "Instancias y fechas asociadas a una organización.",
-                onClick = onEventos
             )
         }
     }

@@ -152,3 +152,46 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         DatabaseSeed.insertarUsuarios(db)
     }
 }
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE oportunidades ADD COLUMN comuna TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE eventos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'EVENTO_CORPORATIVO'")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN descripcion TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN fechaTermino INTEGER")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN horaInicio TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN horaTermino TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN direccion TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN region TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN publicoEsperado TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN publicoObjetivo TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN asistentesEstimados INTEGER")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN condicionesParticipacion TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN requisitos TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN costoReferencial REAL")
+        db.execSQL("ALTER TABLE eventos ADD COLUMN espaciosDisponibles TEXT NOT NULL DEFAULT ''")
+        db.execSQL(
+            "UPDATE eventos SET fechaTermino = fecha " +
+                "WHERE fechaTermino IS NULL"
+        )
+
+        db.execSQL(
+            "ALTER TABLE activaciones ADD COLUMN observacionesCoordinacion " +
+                "TEXT NOT NULL DEFAULT ''"
+        )
+        db.execSQL("ALTER TABLE resultados ADD COLUMN fechaRealizacion INTEGER")
+        db.execSQL("ALTER TABLE resultados ADD COLUMN asistentesEstimados INTEGER")
+        db.execSQL(
+            "ALTER TABLE resultados ADD COLUMN contactosGenerados INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "ALTER TABLE resultados ADD COLUMN personasInteresadas INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL("ALTER TABLE resultados ADD COLUMN inscripciones INTEGER NOT NULL DEFAULT 0")
+    }
+}

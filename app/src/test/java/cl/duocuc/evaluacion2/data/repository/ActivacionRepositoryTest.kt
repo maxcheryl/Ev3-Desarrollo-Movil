@@ -14,6 +14,7 @@ import cl.duocuc.evaluacion2.data.local.ResultadoDao
 import cl.duocuc.evaluacion2.data.local.ResultadoEntity
 import cl.duocuc.evaluacion2.data.local.UsuarioDao
 import cl.duocuc.evaluacion2.data.local.UsuarioEntity
+import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -115,7 +116,7 @@ private class ActivacionRepositoryTestCases {
         coEvery { opportunityDao.buscarPorId(4) } returnsMany listOf(null, opportunity)
         coEvery { resultadoDao.obtenerPorActivacion(5) } returnsMany listOf(
             null,
-            ResultadoEntity(id = 8, activacionId = 5, resultado = "PARTICIPACION_CONFIRMADA")
+            ResultadoEntity(id = 8, activacionId = 5, resultado = "ACTIVACION_REALIZADA")
         )
         coEvery { resultadoDao.insert(any()) } returns 14
         coEvery { resultadoDao.update(any()) } just Runs
@@ -127,32 +128,65 @@ private class ActivacionRepositoryTestCases {
                 repository.guardarResultado(5, "OTRO", "", "", "OTRO", 9)
             }.exceptionOrNull()?.message) shouldBe ("Selecciona un resultado final válido.")
         (runCatching {
-                repository.guardarResultado(5, "RESULTADO", "", "", "PARTICIPACION_CONFIRMADA", 9)
+                repository.guardarResultado(5, "RESULTADO", "", "", "ACTIVACION_REALIZADA", 9)
             }.exceptionOrNull()?.message) shouldBe ("No se encontró la activación asociada.")
         (runCatching {
-                repository.guardarResultado(5, "RESULTADO", "", "", "PARTICIPACION_CONFIRMADA", 9)
+                repository.guardarResultado(5, "RESULTADO", "", "", "ACTIVACION_REALIZADA", 9)
             }.exceptionOrNull()?.message) shouldBe ("La oportunidad ya no está disponible.")
 
         repository.guardarResultado(
             activacionId = 5,
-            resultado = "PARTICIPACION_CONFIRMADA",
+            resultado = "ACTIVACION_REALIZADA",
             observaciones = " Confirmada ",
             impacto = " Alto ",
-            nuevoEstado = "PARTICIPACION_CONFIRMADA",
+            nuevoEstado = "ACTIVACION_REALIZADA",
             usuarioId = 9
         )
 
-        coVerify { resultadoDao.insert(match { it.activacionId == 5L && it.fecha > 0L }) }
+        coVerify {
+            resultadoDao.insert(
+                match {
+                    it.activacionId == 5L &&
+                        it.fecha > 0L &&
+                        it.asistentesEstimados == null &&
+                        it.contactosGenerados == 0
+                }
+            )
+        }
         coVerify {
             activacionDao.update(match { it.participacionConfirmada })
-            opportunityDao.update(match { it.estado == "PARTICIPACION_CONFIRMADA" })
+            opportunityDao.update(match { it.estado == "ACTIVACION_REALIZADA" })
             historialDao.insert(match { it.tipoAccion == "RESULTADO" })
         }
 
-        repository.guardarResultado(5, "OPORTUNIDAD_DESCARTADA", "", "", "OPORTUNIDAD_DESCARTADA", 9)
+        repository.guardarResultado(
+            5,
+            "ACTIVACION_CANCELADA",
+            "",
+            "",
+            "ACTIVACION_CANCELADA",
+            9,
+            fechaRealizacion = 900,
+            asistentesEstimados = 125,
+            contactosGenerados = 40,
+            personasInteresadas = 22,
+            inscripciones = 16
+        )
         coVerify { resultadoDao.update(match { it.id == 8L }) }
         coVerify { activacionDao.update(match { !it.participacionConfirmada }) }
-        coVerify { opportunityDao.update(match { it.estado == "OPORTUNIDAD_DESCARTADA" }) }
+        coVerify {
+            resultadoDao.update(
+                match {
+                    it.id == 8L &&
+                        it.fechaRealizacion == 900L &&
+                        it.asistentesEstimados == 125 &&
+                        it.contactosGenerados == 40 &&
+                        it.personasInteresadas == 22 &&
+                        it.inscripciones == 16
+                }
+            )
+            opportunityDao.update(match { it.estado == "ACTIVACION_CANCELADA" })
+        }
     }
 
     fun delegaConsultasYFlujos() = runBlocking {
@@ -184,7 +218,7 @@ private class ActivacionRepositoryTestCases {
         fuente = "Referencia",
         prioridad = "MEDIA",
         potencialComercial = "ALTO",
-        estado = "EVENTO_IDENTIFICADO",
+        estado = EstadoGestion.PARTICIPACION_CONFIRMADA.name,
         responsableId = 9
     )
 

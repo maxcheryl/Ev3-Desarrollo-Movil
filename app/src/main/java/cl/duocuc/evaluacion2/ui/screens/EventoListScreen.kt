@@ -46,6 +46,7 @@ fun EventoListScreen(
     onNuevo: () -> Unit,
     onSeleccionar: (Long) -> Unit,
     onConsultarApi: () -> Unit,
+    puedeEditar: Boolean,
     modifier: Modifier = Modifier
 ) {
     val eventos by viewModel.eventos.collectAsState()
@@ -80,11 +81,13 @@ fun EventoListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNuevo,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("Nuevo evento") }
-            )
+            if (puedeEditar) {
+                ExtendedFloatingActionButton(
+                    onClick = onNuevo,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text("Nuevo evento") }
+                )
+            }
         }
     ) { innerPadding ->
         Box(
@@ -109,7 +112,11 @@ fun EventoListScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = "Toca «Nuevo evento» para comenzar.",
+                        text = if (puedeEditar) {
+                            "Toca «Nuevo evento» para comenzar."
+                        } else {
+                            "Los eventos registrados aparecerán aquí."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -125,6 +132,7 @@ fun EventoListScreen(
                             organizacion = nombresOrganizacion[evento.organizacionId] ?: "Sin organización",
                             fechaFormateada = formatoFecha.format(Date(evento.fecha)),
                             onClick = { onSeleccionar(evento.id) },
+                            puedeEditar = puedeEditar,
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -140,16 +148,12 @@ private fun TarjetaEvento(
     organizacion: String,
     fechaFormateada: String,
     onClick: () -> Unit,
+    puedeEditar: Boolean,
     modifier: Modifier = Modifier
 ) {
-    ElevatedCard(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
+    @Composable
+    fun Contenido() {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = evento.nombre,
                 style = MaterialTheme.typography.titleMedium,
@@ -167,6 +171,16 @@ private fun TarjetaEvento(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+
+    if (puedeEditar) {
+        ElevatedCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+            Contenido()
+        }
+    } else {
+        ElevatedCard(modifier = modifier.fillMaxWidth()) {
+            Contenido()
         }
     }
 }

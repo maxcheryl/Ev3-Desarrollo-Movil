@@ -5,6 +5,7 @@ import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.ActivacionDao
 import cl.duocuc.evaluacion2.data.local.EvidenciaEntity
 import cl.duocuc.evaluacion2.data.local.EvidenciaDao
+import cl.duocuc.evaluacion2.data.local.EventoDao
 import cl.duocuc.evaluacion2.data.local.HistorialCambioDao
 import cl.duocuc.evaluacion2.data.local.HistorialCambioEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityDao
@@ -21,7 +22,8 @@ class ActivacionRepository(
     private val opportunityDao: OpportunityDao,
     private val resultadoDao: ResultadoDao,
     private val usuarioDao: UsuarioDao,
-    private val ejecutorTransacciones: EjecutorTransacciones
+    private val ejecutorTransacciones: EjecutorTransacciones,
+    private val eventoDao: EventoDao? = null
 ) {
 
     constructor(database: AppDatabase) : this(
@@ -31,12 +33,15 @@ class ActivacionRepository(
         opportunityDao = database.opportunityDao(),
         resultadoDao = database.resultadoDao(),
         usuarioDao = database.usuarioDao(),
-        ejecutorTransacciones = RoomEjecutorTransacciones(database)
+        ejecutorTransacciones = RoomEjecutorTransacciones(database),
+        eventoDao = database.eventoDao()
     )
 
     fun observeUsuarios() = usuarioDao.observeAll()
 
     suspend fun obtenerOportunidad(id: Long) = opportunityDao.buscarPorId(id)
+
+    suspend fun obtenerEvento(id: Long) = eventoDao?.buscarPorId(id)
 
     suspend fun obtenerActivacion(oportunidadId: Long) =
         activacionDao.obtenerPorOportunidad(oportunidadId)
@@ -49,8 +54,14 @@ class ActivacionRepository(
 
     suspend fun guardarActivacion(activacion: ActivacionEntity, usuarioId: Long): Long =
         ejecutorTransacciones.ejecutar {
-            check(opportunityDao.buscarPorId(activacion.oportunidadId) != null) {
-                "La oportunidad ya no está disponible."
+            val oportunidad = opportunityDao.buscarPorId(activacion.oportunidadId)
+                ?: error("La oportunidad ya no está disponible.")
+            check(
+                oportunidad.estado == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
+                    oportunidad.estado == EstadoGestion.ACTIVACION_REALIZADA.name ||
+                    oportunidad.estado == EstadoGestion.ACTIVACION_CANCELADA.name
+            ) {
+                "La activación solo se puede coordinar cuando la participación está confirmada."
             }
             check(usuarioDao.buscarPorId(activacion.responsableId) != null) {
                 "Selecciona un responsable disponible."
@@ -101,10 +112,15 @@ class ActivacionRepository(
         observaciones: String,
         impacto: String,
         nuevoEstado: String,
-        usuarioId: Long
+        usuarioId: Long,
+        fechaRealizacion: Long? = null,
+        asistentesEstimados: Int? = null,
+        contactosGenerados: Int = 0,
+        personasInteresadas: Int = 0,
+        inscripciones: Int = 0
     ) = ejecutorTransacciones.ejecutar {
-        require(nuevoEstado == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
-            nuevoEstado == EstadoGestion.OPORTUNIDAD_DESCARTADA.name
+        require(nuevoEstado == EstadoGestion.ACTIVACION_REALIZADA.name ||
+            nuevoEstado == EstadoGestion.ACTIVACION_CANCELADA.name
         ) {
             "Selecciona un resultado final válido."
         }
@@ -113,6 +129,13 @@ class ActivacionRepository(
             ?: error("No se encontró la activación asociada.")
         val oportunidad = opportunityDao.buscarPorId(activacion.oportunidadId)
             ?: error("La oportunidad ya no está disponible.")
+        check(
+            oportunidad.estado == EstadoGestion.PARTICIPACION_CONFIRMADA.name ||
+                oportunidad.estado == EstadoGestion.ACTIVACION_REALIZADA.name ||
+                oportunidad.estado == EstadoGestion.ACTIVACION_CANCELADA.name
+        ) {
+            "La oportunidad debe estar confirmada antes de registrar el resultado."
+        }
         val ahora = System.currentTimeMillis()
         val actual = resultadoDao.obtenerPorActivacion(activacionId)
         val resultadoEntity = ResultadoEntity(
@@ -121,7 +144,12 @@ class ActivacionRepository(
             resultado = resultado,
             observaciones = observaciones,
             impacto = impacto,
-            fecha = ahora
+            fecha = ahora,
+            fechaRealizacion = fechaRealizacion,
+            asistentesEstimados = asistentesEstimados,
+            contactosGenerados = contactosGenerados,
+            personasInteresadas = personasInteresadas,
+            inscripciones = inscripciones
         )
 
         if (actual == null) {
@@ -133,7 +161,7 @@ class ActivacionRepository(
         activacionDao.update(
             activacion.copy(
                 participacionConfirmada =
-                    nuevoEstado == EstadoGestion.PARTICIPACION_CONFIRMADA.name
+                    nuevoEstado == EstadoGestion.ACTIVACION_REALIZADA.name
             )
         )
         opportunityDao.update(

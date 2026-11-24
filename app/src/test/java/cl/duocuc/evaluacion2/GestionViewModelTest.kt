@@ -115,7 +115,7 @@ private class GestionViewModelTestCases {
         coEvery { repository.buscarOportunidad(2) } returns oportunidad(responsable = 1)
         executiveVm.beginNueva()
         advanceUntilIdle()
-        (executiveVm.editor.value.form.estado) shouldBe (EstadoGestion.CONTACTO_PENDIENTE.name)
+        (executiveVm.editor.value.form.estado) shouldBe ("")
     }
 
     fun guardarValidaPermisosYCamposAntesDeRegistrar() = runTest {
@@ -183,7 +183,7 @@ private class GestionViewModelTestCases {
 
         val captured = slot<GestionEntity>()
         coVerify { repository.registrar(capture(captured), EstadoGestion.CONTACTO_REALIZADO.name) }
-        (captured.captured.descripcion) shouldBe ("Llamada realizada")
+        (captured.captured.descripcion) shouldBe ("")
         (captured.captured.resultado) shouldBe ("Se presentó propuesta")
         (captured.captured.proximaAccion) shouldBe ("Enviar correo")
         (captured.captured.usuarioId) shouldBe (1L)

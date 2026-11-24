@@ -82,6 +82,7 @@ private class OportunidadViewModelTestCases {
         viewModel.beginEditar(existing.id)
         (viewModel.editor.value.form.nombre) shouldBe (existing.nombre)
         (viewModel.editor.value.form.fechaCreacion) shouldBe (existing.fechaCreacion)
+        (viewModel.editor.value.form.comuna) shouldBe (existing.comuna)
         (viewModel.editor.value.form.contactoId) shouldBe (existing.contactoId)
         (viewModel.editor.value.mensajeError) shouldBe null
     }
@@ -111,7 +112,10 @@ private class OportunidadViewModelTestCases {
         viewModel.onNombreChange("  Feria nueva  ")
         viewModel.onDescripcionChange("  Descripción detallada  ")
         viewModel.onObservacionesChange("  Nota  ")
+        viewModel.onPublicoEsperadoChange("  120 asistentes  ")
+        viewModel.onComunaChange("  Santiago  ")
         viewModel.onFuenteChange(FuentesOportunidad.opciones.first())
+        val fechaIdentificacion = viewModel.editor.value.form.fechaCreacion
         var idGuardado: Long? = null
 
         viewModel.guardarOportunidad { idGuardado = it }
@@ -122,6 +126,9 @@ private class OportunidadViewModelTestCases {
         (saved.captured.nombre) shouldBe ("Feria nueva")
         (saved.captured.descripcion) shouldBe ("Descripción detallada")
         (saved.captured.observaciones) shouldBe ("Nota")
+        (saved.captured.publicoEsperado) shouldBe ("120 asistentes")
+        (saved.captured.comuna) shouldBe ("Santiago")
+        (saved.captured.fechaCreacion) shouldBe (fechaIdentificacion)
         (saved.captured.responsableId) shouldBe (1L)
         (idGuardado) shouldBe (71L)
         (viewModel.editor.value.mensajeError) shouldBe null
@@ -235,6 +242,7 @@ private class OportunidadViewModelTestCases {
         viewModel.onPrioridadChange(Prioridad.ALTA.name)
         viewModel.onPotencialComercialChange(PotencialComercial.ALTO.name)
         viewModel.onEstadoChange(EstadoGestion.EVENTO_IDENTIFICADO.name)
+        viewModel.onComunaChange("Santiago")
     }
 
     private fun ejecutivo(id: Long) = UsuarioSesion(
@@ -261,6 +269,7 @@ private class OportunidadViewModelTestCases {
         potencialComercial = PotencialComercial.ALTO.name,
         estado = EstadoGestion.EVENTO_IDENTIFICADO.name,
         responsableId = responsable,
+        comuna = "Santiago",
         fechaCreacion = id * 100,
         fechaActualizacion = id * 100 + 10,
         contactoId = 5

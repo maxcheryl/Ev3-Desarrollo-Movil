@@ -15,7 +15,7 @@ enum class TipoOportunidad(val etiqueta: String) {
     FERIA_INSTITUCIONAL("Feria institucional"),
     ACTIVIDAD_DE_TRABAJADORES("Actividad de trabajadores"),
     ACTIVACION_COMERCIAL("Activación comercial"),
-    OTRA_INSTANCIA("Otra instancia");
+    OTRA_INSTANCIA("Otra instancia relevante");
 
     companion object {
         fun desdeNombre(nombre: String): TipoOportunidad =
@@ -52,7 +52,9 @@ enum class EstadoGestion(val etiqueta: String) {
     PROPUESTA_ENVIADA("Propuesta enviada"),
     EN_ESPERA_DE_RESPUESTA("En espera de respuesta"),
     PARTICIPACION_CONFIRMADA("Participación confirmada"),
-    OPORTUNIDAD_DESCARTADA("Oportunidad descartada");
+    OPORTUNIDAD_DESCARTADA("Oportunidad descartada"),
+    ACTIVACION_REALIZADA("Activación realizada"),
+    ACTIVACION_CANCELADA("Activación cancelada");
 
     companion object {
         fun desdeNombre(nombre: String): EstadoGestion =

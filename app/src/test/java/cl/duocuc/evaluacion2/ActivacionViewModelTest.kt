@@ -65,9 +65,14 @@ private class ActivacionViewModelTestCases {
             result = ResultadoEntity(
                 id = 30,
                 activacionId = 21,
-                resultado = EstadoGestion.PARTICIPACION_CONFIRMADA.name,
+                resultado = EstadoGestion.ACTIVACION_REALIZADA.name,
                 observaciones = "Asistieron",
-                impacto = "Alto"
+                impacto = "Alto",
+                fechaRealizacion = 900,
+                asistentesEstimados = 120,
+                contactosGenerados = 20,
+                personasInteresadas = 12,
+                inscripciones = 8
             )
         )
         val viewModel = ActivacionViewModel(repository, SessionManager())
@@ -96,7 +101,7 @@ private class ActivacionViewModelTestCases {
 
     fun cargarUsaResponsablePredeterminadoYEstadoFinalDeLaOportunidad() = runTest {
         val repository = repository(
-            opportunity = oportunidad(EstadoGestion.OPORTUNIDAD_DESCARTADA.name),
+            opportunity = oportunidad(EstadoGestion.ACTIVACION_CANCELADA.name),
             activation = null,
             result = null
         )
@@ -107,7 +112,7 @@ private class ActivacionViewModelTestCases {
         advanceUntilIdle()
 
         (viewModel.uiState.value.responsableId) shouldBe (8L)
-        (viewModel.uiState.value.resultadoFinal) shouldBe (EstadoGestion.OPORTUNIDAD_DESCARTADA.name)
+        (viewModel.uiState.value.resultadoFinal) shouldBe (EstadoGestion.ACTIVACION_CANCELADA.name)
         (viewModel.uiState.value.participacionConfirmada) shouldBe false
     }
 
@@ -242,17 +247,34 @@ private class ActivacionViewModelTestCases {
         validVm.guardarResultado()
         (validVm.uiState.value.mensajeError.orEmpty().contains("resultado final")) shouldBe true
 
-        coEvery { repository.guardarResultado(any(), any(), any(), any(), any(), any()) } returns 77
-        validVm.onResultadoFinalChange(EstadoGestion.PARTICIPACION_CONFIRMADA.name)
+        coEvery {
+            repository.guardarResultado(
+                any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any()
+            )
+        } returns 77
+        validVm.onResultadoFinalChange(EstadoGestion.ACTIVACION_REALIZADA.name)
         validVm.onObservacionesChange("  Confirmada  ")
         validVm.onImpactoChange("  Positivo  ")
+        validVm.onFechaRealizacionChange(500)
+        validVm.onAsistentesEstimadosChange("120")
+        validVm.onContactosGeneradosChange("-1")
+        validVm.guardarResultado()
+        (validVm.uiState.value.mensajeError.orEmpty().contains("mayores que cero")) shouldBe true
+        validVm.onContactosGeneradosChange("30")
+        validVm.onPersonasInteresadasChange("20")
+        validVm.onInscripcionesChange("12")
         validVm.guardarResultado()
         advanceUntilIdle()
 
-        (validVm.uiState.value.resultadoGuardado?.resultado) shouldBe (EstadoGestion.PARTICIPACION_CONFIRMADA.name)
+        (validVm.uiState.value.resultadoGuardado?.resultado) shouldBe (EstadoGestion.ACTIVACION_REALIZADA.name)
         (validVm.uiState.value.resultadoGuardado?.observaciones) shouldBe ("Confirmada")
+        (validVm.uiState.value.resultadoGuardado?.asistentesEstimados) shouldBe (120)
+        (validVm.uiState.value.resultadoGuardado?.contactosGenerados) shouldBe (30)
+        (validVm.uiState.value.resultadoGuardado?.personasInteresadas) shouldBe (20)
+        (validVm.uiState.value.resultadoGuardado?.inscripciones) shouldBe (12)
         (validVm.uiState.value.participacionConfirmada) shouldBe true
-        (validVm.uiState.value.mensajeExito) shouldBe ("Resultado guardado y oportunidad cerrada.")
+        (validVm.uiState.value.mensajeExito) shouldBe ("Resultado de activación guardado.")
     }
 
     private fun repository(
@@ -270,11 +292,18 @@ private class ActivacionViewModelTestCases {
         coEvery { repository.obtenerResultado(any()) } returns result
         coEvery { repository.guardarActivacion(any(), any()) } returns 55
         coEvery { repository.agregarEvidencia(any(), any()) } returns 33
-        coEvery { repository.guardarResultado(any(), any(), any(), any(), any(), any()) } returns 77
+        coEvery {
+            repository.guardarResultado(
+                any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any()
+            )
+        } returns 77
         return repository
     }
 
-    private fun oportunidad(estado: String = EstadoGestion.EVENTO_IDENTIFICADO.name) = OpportunityEntity(
+    private fun oportunidad(
+        estado: String = EstadoGestion.PARTICIPACION_CONFIRMADA.name
+    ) = OpportunityEntity(
         id = 4,
         nombre = "Feria",
         tipo = "FERIA_EMPRESARIAL",

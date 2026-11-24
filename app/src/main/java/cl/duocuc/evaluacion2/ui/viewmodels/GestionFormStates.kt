@@ -1,12 +1,40 @@
 package cl.duocuc.evaluacion2.ui.viewmodels
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+private fun fechaLocalEnUtc(): Long {
+    val hoy = Calendar.getInstance()
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        clear()
+        set(
+            hoy.get(Calendar.YEAR),
+            hoy.get(Calendar.MONTH),
+            hoy.get(Calendar.DAY_OF_MONTH),
+            0,
+            0,
+            0
+        )
+    }.timeInMillis
+}
+
+private fun horaLocalActual(): String =
+    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
 data class GestionFormState(
     val tipo: String = "",
     val estado: String = "",
     val descripcion: String = "",
+    val fechaGestion: Long? = fechaLocalEnUtc(),
     val resultado: String = "",
     val proximaAccion: String = "",
-    val fechaProximaAccion: Long? = null
+    val fechaProximaAccion: Long? = null,
+    val horaGestion: String = horaLocalActual(),
+    val horaProximaAccion: String = "",
+    val observaciones: String = ""
 )
 
 data class GestionErrores(

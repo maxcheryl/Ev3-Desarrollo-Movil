@@ -95,10 +95,68 @@ class PostViewModel(
         }
     }
 
+    fun crearEvento(
+        idEvento: String,
+        nombreEvento: String,
+        fecha: String,
+        ubicacion: String,
+        organizacion: String
+    ) {
+        val id = idEvento.trim().toIntOrNull()
+        if (id == null || id <= 0) {
+            informarErrorMutacion("Ingresa un ID de evento numérico mayor que cero.")
+            return
+        }
+        if (
+            nombreEvento.isBlank() ||
+            fecha.isBlank() ||
+            ubicacion.isBlank() ||
+            organizacion.isBlank()
+        ) {
+            informarErrorMutacion(
+                "Completa el nombre, fecha, comuna o ubicación y organización del evento."
+            )
+            return
+        }
+
+        val nombre = nombreEvento.trim()
+        val fechaLimpia = fecha.trim()
+        val ubicacionLimpia = ubicacion.trim()
+        val organizacionLimpia = organizacion.trim()
+        val solicitud = PostRequest(
+            userId = 1,
+            title = nombre,
+            body = "Fecha: $fechaLimpia · Ubicación: $ubicacionLimpia · " +
+                "Organización: $organizacionLimpia",
+            eventId = id,
+            eventName = nombre,
+            date = fechaLimpia,
+            location = ubicacionLimpia,
+            organization = organizacionLimpia
+        )
+        ejecutarMutacion("POST exitoso. JSONPlaceholder no conserva los cambios.") {
+            val creado = repository.crearPublicacion(solicitud)
+            _uiState.update { estado ->
+                estado.copy(
+                    publicaciones = listOf(creado) +
+                        estado.publicaciones.filterNot { it.id == creado.id }
+                )
+            }
+        }
+    }
+
     fun actualizarPublicacion(publicacion: PostResponse, titulo: String, contenido: String) {
         val solicitud = crearSolicitud(titulo, contenido, publicacion.userId) ?: return
         ejecutarMutacion("PUT exitoso. JSONPlaceholder no conserva los cambios.") {
-            val actualizada = repository.actualizarPublicacion(publicacion.id, solicitud)
+            val respuesta = repository.actualizarPublicacion(publicacion.id, solicitud)
+            val actualizada = respuesta.copy(
+                eventId = respuesta.eventId ?: publicacion.eventId,
+                eventName = publicacion.eventName?.let { titulo.trim() }
+                    ?: respuesta.eventName,
+                date = respuesta.date ?: publicacion.date,
+                location = respuesta.location ?: publicacion.location,
+                organization = respuesta.organization ?: publicacion.organization
+            )
             _uiState.update { estado ->
                 estado.copy(
                     publicaciones = estado.publicaciones.map {

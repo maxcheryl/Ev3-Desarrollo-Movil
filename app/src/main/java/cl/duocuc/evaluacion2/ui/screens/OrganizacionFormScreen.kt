@@ -64,7 +64,9 @@ fun OrganizacionFormScreen(
     }
 
     val esEdicion = editor.form.id != 0L
-    val opcionesTipo = TipoOrganizacion.entries.map { OpcionDropdown(it.name, it.etiqueta) }
+    val opcionesTipo = TipoOrganizacion.entries
+        .filter { it != TipoOrganizacion.INSTITUCION || editor.form.tipo == it.name }
+        .map { OpcionDropdown(it.name, it.etiqueta) }
 
     Scaffold(
         modifier = modifier,

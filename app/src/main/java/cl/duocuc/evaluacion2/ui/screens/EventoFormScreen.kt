@@ -1,5 +1,6 @@
 package cl.duocuc.evaluacion2.ui.screens
 
+import android.app.TimePickerDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -44,14 +46,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import cl.duocuc.evaluacion2.data.model.TipoOportunidad
+import cl.duocuc.evaluacion2.data.model.TipoOrganizacion
 import cl.duocuc.evaluacion2.ui.components.CampoDropdownFormulario
 import cl.duocuc.evaluacion2.ui.components.CampoTextoFormulario
 import cl.duocuc.evaluacion2.ui.components.OpcionDropdown
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
@@ -60,6 +67,7 @@ import java.util.TimeZone
 fun EventoFormScreen(
     viewModel: EventoViewModel,
     eventoId: Long?,
+    oportunidadId: Long? = null,
     onVolver: () -> Unit,
     onGuardado: () -> Unit,
     modifier: Modifier = Modifier
@@ -75,7 +83,9 @@ fun EventoFormScreen(
         }
     }
 
-    var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaInicio by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaTermino by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val esEdicion = editor.form.id != 0L
     val opcionesOrganizacion = organizaciones.map {
@@ -83,31 +93,60 @@ fun EventoFormScreen(
     }
     val errorOrganizacion = editor.errores.organizacionId
         ?: if (organizaciones.isEmpty()) "Crea primero una organización." else null
+    val organizacionSeleccionada = organizaciones.firstOrNull {
+        it.id == editor.form.organizacionId
+    }
     val formatoFecha = remember {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
     }
 
-    if (mostrarSelectorFecha) {
+    if (mostrarSelectorFechaInicio) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = editor.form.fecha
         )
 
         DatePickerDialog(
-            onDismissRequest = { mostrarSelectorFecha = false },
+            onDismissRequest = { mostrarSelectorFechaInicio = false },
             confirmButton = {
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let(viewModel::onFechaChange)
-                        mostrarSelectorFecha = false
+                        mostrarSelectorFechaInicio = false
                     }
                 ) {
                     Text("Aceptar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarSelectorFecha = false }) {
+                TextButton(onClick = { mostrarSelectorFechaInicio = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (mostrarSelectorFechaTermino) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = editor.form.fechaTermino ?: editor.form.fecha
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFechaTermino = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let(viewModel::onFechaTerminoChange)
+                        mostrarSelectorFechaTermino = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarSelectorFechaTermino = false }) {
                     Text("Cancelar")
                 }
             }
@@ -151,24 +190,45 @@ fun EventoFormScreen(
                 )
             }
 
+            Text("Información general", style = MaterialTheme.typography.titleMedium)
             CampoTextoFormulario(
-                label = "Nombre *",
+                label = "Nombre del evento *",
                 value = editor.form.nombre,
                 error = editor.errores.nombre,
                 onValueChange = viewModel::onNombreChange
             )
 
+            CampoDropdownFormulario(
+                label = "Tipo de evento *",
+                selected = editor.form.tipo,
+                options = TipoOportunidad.entries.map {
+                    OpcionDropdown(it.name, it.etiqueta)
+                },
+                placeholder = "Selecciona un tipo",
+                error = editor.errores.tipo,
+                onSelected = viewModel::onTipoChange
+            )
+
+            CampoTextoFormulario(
+                label = "Descripción",
+                value = editor.form.descripcion,
+                error = null,
+                onValueChange = viewModel::onDescripcionChange,
+                singleLine = false
+            )
+
+            Text("Fecha y ubicación", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = editor.form.fecha?.let { formatoFecha.format(Date(it)) }.orEmpty(),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Fecha *") },
+                label = { Text("Fecha de inicio *") },
                 placeholder = { Text("Selecciona una fecha") },
                 trailingIcon = {
-                    IconButton(onClick = { mostrarSelectorFecha = true }) {
+                    IconButton(onClick = { mostrarSelectorFechaInicio = true }) {
                         Icon(
                             imageVector = Icons.Outlined.CalendarMonth,
-                            contentDescription = "Seleccionar fecha"
+                            contentDescription = "Seleccionar fecha de inicio"
                         )
                     }
                 },
@@ -184,6 +244,89 @@ fun EventoFormScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedTextField(
+                value = editor.form.fechaTermino?.let { formatoFecha.format(Date(it)) }.orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Fecha de término *") },
+                placeholder = { Text("Selecciona una fecha") },
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSelectorFechaTermino = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = "Seleccionar fecha de término"
+                        )
+                    }
+                },
+                isError = editor.errores.fechaTermino != null,
+                supportingText = editor.errores.fechaTermino?.let {
+                    { Text(it, color = MaterialTheme.colorScheme.error) }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val calendar = Calendar.getInstance()
+                        editor.form.horaInicio.split(':').takeIf { it.size == 2 }?.let {
+                            calendar.set(Calendar.HOUR_OF_DAY, it[0].toIntOrNull() ?: 9)
+                            calendar.set(Calendar.MINUTE, it[1].toIntOrNull() ?: 0)
+                        }
+                        TimePickerDialog(
+                            context,
+                            { _, hora, minuto ->
+                                viewModel.onHoraInicioChange("%02d:%02d".format(hora, minuto))
+                            },
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Inicio: ${editor.form.horaInicio.ifBlank { "Hora" }}")
+                }
+                OutlinedButton(
+                    onClick = {
+                        val calendar = Calendar.getInstance()
+                        editor.form.horaTermino.split(':').takeIf { it.size == 2 }?.let {
+                            calendar.set(Calendar.HOUR_OF_DAY, it[0].toIntOrNull() ?: 18)
+                            calendar.set(Calendar.MINUTE, it[1].toIntOrNull() ?: 0)
+                        }
+                        TimePickerDialog(
+                            context,
+                            { _, hora, minuto ->
+                                viewModel.onHoraTerminoChange("%02d:%02d".format(hora, minuto))
+                            },
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Término: ${editor.form.horaTermino.ifBlank { "Hora" }}")
+                }
+            }
+
+            CampoTextoFormulario(
+                label = "Dirección o ubicación",
+                value = editor.form.direccion,
+                error = null,
+                onValueChange = viewModel::onDireccionChange
+            )
+
+            CampoTextoFormulario(
+                label = "Región *",
+                value = editor.form.region,
+                error = editor.errores.region,
+                onValueChange = viewModel::onRegionChange
+            )
+
             CampoTextoFormulario(
                 label = "Comuna *",
                 value = editor.form.comuna,
@@ -191,6 +334,7 @@ fun EventoFormScreen(
                 onValueChange = viewModel::onComunaChange
             )
 
+            Text("Organización responsable", style = MaterialTheme.typography.titleMedium)
             CampoDropdownFormulario(
                 label = "Organización *",
                 selected = editor.form.organizacionId?.toString().orEmpty(),
@@ -198,6 +342,71 @@ fun EventoFormScreen(
                 placeholder = "Selecciona una organización",
                 error = errorOrganizacion,
                 onSelected = { valor -> viewModel.onOrganizacionChange(valor.toLongOrNull()) }
+            )
+            organizacionSeleccionada?.let {
+                Text(
+                    text = "Tipo de organización: " +
+                        TipoOrganizacion.desdeNombre(it.tipo).etiqueta,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text("Público y potencial", style = MaterialTheme.typography.titleMedium)
+            CampoTextoFormulario(
+                label = "Público esperado",
+                value = editor.form.publicoEsperado,
+                error = null,
+                onValueChange = viewModel::onPublicoEsperadoChange
+            )
+            Text("Público objetivo", style = MaterialTheme.typography.labelLarge)
+            listOf("Trabajadores", "Colaboradores", "Familias", "Asistentes", "Otro").forEach {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = it in editor.form.publicoObjetivo,
+                        onCheckedChange = { seleccionado ->
+                            viewModel.onPublicoObjetivoChange(it, seleccionado)
+                        }
+                    )
+                    Text(it)
+                }
+            }
+            CampoTextoFormulario(
+                label = "Cantidad estimada de asistentes",
+                value = editor.form.asistentesEstimados,
+                error = editor.errores.asistentesEstimados,
+                onValueChange = viewModel::onAsistentesEstimadosChange,
+                keyboardType = KeyboardType.Number
+            )
+
+            Text("Condiciones de participación", style = MaterialTheme.typography.titleMedium)
+            CampoTextoFormulario(
+                label = "Condiciones",
+                value = editor.form.condicionesParticipacion,
+                error = null,
+                onValueChange = viewModel::onCondicionesChange,
+                singleLine = false
+            )
+            CampoTextoFormulario(
+                label = "Requisitos",
+                value = editor.form.requisitos,
+                error = null,
+                onValueChange = viewModel::onRequisitosChange,
+                singleLine = false
+            )
+            CampoTextoFormulario(
+                label = "Costo referencial",
+                value = editor.form.costoReferencial,
+                error = editor.errores.costoReferencial,
+                onValueChange = viewModel::onCostoReferencialChange,
+                keyboardType = KeyboardType.Decimal
+            )
+            CampoTextoFormulario(
+                label = "Espacios disponibles",
+                value = editor.form.espaciosDisponibles,
+                error = null,
+                onValueChange = viewModel::onEspaciosDisponiblesChange,
+                singleLine = false
             )
 
             AnimatedVisibility(
@@ -227,14 +436,16 @@ fun EventoFormScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.guardar { onGuardado() } },
+                    onClick = {
+                        viewModel.guardar(oportunidadId) { onGuardado() }
+                    },
                     modifier = Modifier.weight(1f),
                     enabled = !editor.guardando && organizaciones.isNotEmpty()
                 ) {
                     if (editor.guardando) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp))
                     } else {
-                        Text(if (esEdicion) "Guardar cambios" else "Crear evento")
+                        Text(if (esEdicion) "Guardar evento" else "Guardar evento")
                     }
                 }
             }

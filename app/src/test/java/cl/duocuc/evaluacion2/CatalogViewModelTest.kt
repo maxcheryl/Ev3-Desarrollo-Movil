@@ -13,6 +13,7 @@ import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.model.TipoOrganizacion
 import cl.duocuc.evaluacion2.data.repository.ContactoRepository
 import cl.duocuc.evaluacion2.data.repository.EventoRepository
+import cl.duocuc.evaluacion2.data.repository.OportunidadRepository
 import cl.duocuc.evaluacion2.data.repository.OrganizacionRepository
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
@@ -170,11 +171,16 @@ private class CatalogViewModelTestCases {
         val organization = organizacion(id = 11)
         val existing = evento(id = 6, organizationId = 11)
         val eventRepository = mockk<EventoRepository>(relaxed = true)
+        val opportunityRepository = mockk<OportunidadRepository>(relaxed = true)
         val organizationRepository = mockk<OrganizacionRepository>()
         every { eventRepository.observeAll() } returns flowOf(listOf(existing))
         every { organizationRepository.observeAll() } returns flowOf(listOf(organization))
         coEvery { eventRepository.guardar(any()) } returns 60
-        val viewModel = EventoViewModel(eventRepository, organizationRepository)
+        val viewModel = EventoViewModel(
+            eventRepository,
+            organizationRepository,
+            opportunityRepository
+        )
         collectWhileSubscribed(viewModel.eventos)
         collectWhileSubscribed(viewModel.organizaciones)
         advanceUntilIdle()
@@ -192,19 +198,48 @@ private class CatalogViewModelTestCases {
 
         viewModel.beginNueva()
         viewModel.onNombreChange("  Feria comunal  ")
+        viewModel.onTipoChange("FERIA_EMPRESARIAL")
+        viewModel.onDescripcionChange("  Actividad para familias  ")
         viewModel.onFechaChange(1234)
+        viewModel.onFechaTerminoChange(5678)
+        viewModel.onHoraInicioChange("09:00")
+        viewModel.onHoraTerminoChange("18:00")
+        viewModel.onDireccionChange("  Plaza central  ")
+        viewModel.onRegionChange("  Metropolitana  ")
         viewModel.onComunaChange("  Maipú  ")
+        viewModel.onPublicoEsperadoChange("Familias")
+        viewModel.onPublicoObjetivoChange("Familias", true)
+        viewModel.onAsistentesEstimadosChange("250")
+        viewModel.onCondicionesChange("Acceso gratuito")
+        viewModel.onRequisitosChange("Permiso municipal")
+        viewModel.onCostoReferencialChange("120000")
+        viewModel.onEspaciosDisponiblesChange("Dos stands")
         var savedId: Long? = null
-        viewModel.guardar { savedId = it }
+        viewModel.guardar(oportunidadId = 22L) { savedId = it }
         advanceUntilIdle()
 
         val saved = mutableListOf<EventoEntity>()
         coVerify(exactly = 2) { eventRepository.guardar(capture(saved)) }
         (saved[1].nombre) shouldBe ("Feria comunal")
+        (saved[1].tipo) shouldBe ("FERIA_EMPRESARIAL")
+        (saved[1].descripcion) shouldBe ("Actividad para familias")
         (saved[1].fecha) shouldBe (1234L)
+        (saved[1].fechaTermino) shouldBe (5678L)
+        (saved[1].horaInicio) shouldBe ("09:00")
+        (saved[1].horaTermino) shouldBe ("18:00")
+        (saved[1].direccion) shouldBe ("Plaza central")
+        (saved[1].region) shouldBe ("Metropolitana")
         (saved[1].comuna) shouldBe ("Maipú")
+        (saved[1].publicoEsperado) shouldBe ("Familias")
+        (saved[1].publicoObjetivo) shouldBe ("Familias")
+        (saved[1].asistentesEstimados) shouldBe (250)
+        (saved[1].condicionesParticipacion) shouldBe ("Acceso gratuito")
+        (saved[1].requisitos) shouldBe ("Permiso municipal")
+        (saved[1].costoReferencial) shouldBe (120000.0)
+        (saved[1].espaciosDisponibles) shouldBe ("Dos stands")
         (saved[1].organizacionId) shouldBe (11L)
         (savedId) shouldBe (60L)
+        coVerify { opportunityRepository.asociarEvento(22L, 60L) }
     }
 
     fun eventoRechazaValidacionYReportaErrorDeRepositorio() = runTest {
@@ -221,6 +256,8 @@ private class CatalogViewModelTestCases {
 
         viewModel.onNombreChange("Feria")
         viewModel.onFechaChange(1234)
+        viewModel.onFechaTerminoChange(5678)
+        viewModel.onRegionChange("Metropolitana")
         viewModel.onComunaChange("Maipú")
         coEvery { repository.guardar(any()) } throws IllegalStateException("No se pudo persistir")
         viewModel.guardar {}
@@ -251,6 +288,8 @@ private class CatalogViewModelTestCases {
         nombre = "Feria",
         fecha = 1000,
         comuna = "Santiago",
-        organizacionId = organizationId
+        organizacionId = organizationId,
+        fechaTermino = 2000,
+        region = "Metropolitana"
     )
 }

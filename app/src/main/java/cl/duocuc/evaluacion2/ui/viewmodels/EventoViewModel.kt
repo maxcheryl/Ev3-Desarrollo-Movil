@@ -8,6 +8,7 @@ import cl.duocuc.evaluacion2.data.local.AppDatabase
 import cl.duocuc.evaluacion2.data.local.EventoEntity
 import cl.duocuc.evaluacion2.data.local.OrganizacionEntity
 import cl.duocuc.evaluacion2.data.repository.EventoRepository
+import cl.duocuc.evaluacion2.data.repository.OportunidadRepository
 import cl.duocuc.evaluacion2.data.repository.OrganizacionRepository
 import cl.duocuc.evaluacion2.validation.EventoValidator
 import kotlinx.coroutines.CancellationException
@@ -29,7 +30,8 @@ data class EventoEditorUiState(
 
 class EventoViewModel(
     private val repository: EventoRepository,
-    private val organizacionRepository: OrganizacionRepository
+    private val organizacionRepository: OrganizacionRepository,
+    private val oportunidadRepository: OportunidadRepository? = null
 ) : ViewModel() {
 
     val eventos: StateFlow<List<EventoEntity>> = repository.observeAll()
@@ -74,9 +76,25 @@ class EventoViewModel(
             form = EventoFormState(
                 id = existente.id,
                 nombre = existente.nombre,
+                tipo = existente.tipo,
+                descripcion = existente.descripcion,
                 fecha = existente.fecha,
+                fechaTermino = existente.fechaTermino,
+                horaInicio = existente.horaInicio,
+                horaTermino = existente.horaTermino,
+                direccion = existente.direccion,
+                region = existente.region,
                 comuna = existente.comuna,
-                organizacionId = existente.organizacionId
+                organizacionId = existente.organizacionId,
+                publicoEsperado = existente.publicoEsperado,
+                publicoObjetivo = existente.publicoObjetivo
+                    .split('|')
+                    .filter(String::isNotBlank),
+                asistentesEstimados = existente.asistentesEstimados?.toString().orEmpty(),
+                condicionesParticipacion = existente.condicionesParticipacion,
+                requisitos = existente.requisitos,
+                costoReferencial = existente.costoReferencial?.toString().orEmpty(),
+                espaciosDisponibles = existente.espaciosDisponibles
             )
         )
     }
@@ -99,6 +117,64 @@ class EventoViewModel(
         }
     }
 
+    fun onTipoChange(valor: String) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(tipo = valor),
+                errores = it.errores.copy(tipo = null)
+            )
+        }
+    }
+
+    fun onDescripcionChange(valor: String) = cambiar { it.copy(descripcion = valor) }
+    fun onFechaTerminoChange(valor: Long) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(fechaTermino = valor),
+                errores = it.errores.copy(fechaTermino = null)
+            )
+        }
+    }
+    fun onHoraInicioChange(valor: String) = cambiar { it.copy(horaInicio = valor) }
+    fun onHoraTerminoChange(valor: String) = cambiar { it.copy(horaTermino = valor) }
+    fun onDireccionChange(valor: String) = cambiar { it.copy(direccion = valor) }
+    fun onRegionChange(valor: String) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(region = valor),
+                errores = it.errores.copy(region = null)
+            )
+        }
+    }
+    fun onPublicoEsperadoChange(valor: String) = cambiar { it.copy(publicoEsperado = valor) }
+    fun onAsistentesEstimadosChange(valor: String) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(asistentesEstimados = valor),
+                errores = it.errores.copy(asistentesEstimados = null)
+            )
+        }
+    }
+    fun onCondicionesChange(valor: String) = cambiar { it.copy(condicionesParticipacion = valor) }
+    fun onRequisitosChange(valor: String) = cambiar { it.copy(requisitos = valor) }
+    fun onCostoReferencialChange(valor: String) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(costoReferencial = valor),
+                errores = it.errores.copy(costoReferencial = null)
+            )
+        }
+    }
+    fun onEspaciosDisponiblesChange(valor: String) = cambiar { it.copy(espaciosDisponibles = valor) }
+
+    fun onPublicoObjetivoChange(valor: String, seleccionado: Boolean) {
+        _editor.update { state ->
+            val seleccionados = state.form.publicoObjetivo.toMutableSet()
+            if (seleccionado) seleccionados.add(valor) else seleccionados.remove(valor)
+            state.copy(form = state.form.copy(publicoObjetivo = seleccionados.toList()))
+        }
+    }
+
     fun onComunaChange(valor: String) {
         _editor.update {
             it.copy(
@@ -117,7 +193,11 @@ class EventoViewModel(
         }
     }
 
-    fun guardar(onListo: (Long) -> Unit) {
+    private fun cambiar(transform: (EventoFormState) -> EventoFormState) {
+        _editor.update { state -> state.copy(form = transform(state.form)) }
+    }
+
+    fun guardar(oportunidadId: Long? = null, onListo: (Long) -> Unit) {
         val actual = _editor.value
         val errores = EventoValidator.validar(actual.form)
 
@@ -133,13 +213,40 @@ class EventoViewModel(
             id = actual.form.id,
             nombre = actual.form.nombre.trim(),
             fecha = actual.form.fecha ?: 0L,
+            tipo = actual.form.tipo,
+            descripcion = actual.form.descripcion.trim(),
+            fechaTermino = actual.form.fechaTermino,
+            horaInicio = actual.form.horaInicio,
+            horaTermino = actual.form.horaTermino,
+            direccion = actual.form.direccion.trim(),
+            region = actual.form.region.trim(),
             comuna = actual.form.comuna.trim(),
-            organizacionId = actual.form.organizacionId ?: 0L
+            organizacionId = actual.form.organizacionId ?: 0L,
+            publicoEsperado = actual.form.publicoEsperado.trim(),
+            publicoObjetivo = actual.form.publicoObjetivo.joinToString("|"),
+            asistentesEstimados = actual.form.asistentesEstimados
+                .trim()
+                .takeIf(String::isNotEmpty)
+                ?.toIntOrNull(),
+            condicionesParticipacion = actual.form.condicionesParticipacion.trim(),
+            requisitos = actual.form.requisitos.trim(),
+            costoReferencial = actual.form.costoReferencial
+                .trim()
+                .takeIf(String::isNotEmpty)
+                ?.replace(',', '.')
+                ?.toDoubleOrNull(),
+            espaciosDisponibles = actual.form.espaciosDisponibles.trim()
         )
 
         viewModelScope.launch {
             try {
                 val idGuardado = repository.guardar(entidad)
+                _editor.update { it.copy(form = it.form.copy(id = idGuardado)) }
+                if (oportunidadId != null) {
+                    checkNotNull(oportunidadRepository) {
+                        "No está disponible el vínculo con la oportunidad."
+                    }.asociarEvento(oportunidadId, idGuardado)
+                }
                 _editor.value = EventoEditorUiState()
                 onListo(idGuardado)
             } catch (e: CancellationException) {
@@ -164,8 +271,8 @@ class EventoViewModel(
                     val database = AppDatabase.getInstance(application)
                     return EventoViewModel(
                         repository = EventoRepository(database.eventoDao()),
-                        organizacionRepository =
-                            OrganizacionRepository(database.organizacionDao())
+                        organizacionRepository = OrganizacionRepository(database.organizacionDao()),
+                        oportunidadRepository = OportunidadRepository(database)
                     ) as T
                 }
             }

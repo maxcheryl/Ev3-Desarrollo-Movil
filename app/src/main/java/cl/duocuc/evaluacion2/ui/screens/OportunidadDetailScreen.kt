@@ -54,6 +54,7 @@ import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.PotencialComercial
 import cl.duocuc.evaluacion2.data.model.Prioridad
 import cl.duocuc.evaluacion2.data.model.TipoAccionHistorial
+import cl.duocuc.evaluacion2.data.model.TipoAccionSeguimiento
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.data.model.TipoOportunidad
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
@@ -80,6 +81,7 @@ fun OportunidadDetailScreen(
     eventoViewModel: EventoViewModel,
     onVolver: () -> Unit,
     onEditar: () -> Unit,
+    onRegistrarEvento: (Long?) -> Unit,
     onRegistrarGestion: () -> Unit,
     onGestionarActivacion: () -> Unit,
     onEliminada: () -> Unit,
@@ -146,6 +148,7 @@ fun OportunidadDetailScreen(
                 contactos = contactos,
                 eventos = eventos,
                 puedeRegistrarGestion = esEjecutivo,
+                onRegistrarEvento = { onRegistrarEvento(oportunidad.eventoId) },
                 onRegistrarGestion = onRegistrarGestion,
                 onGestionarActivacion = onGestionarActivacion,
                 onEliminar = { confirmarEliminacion = true },
@@ -220,6 +223,7 @@ private fun DetalleContenido(
     contactos: List<ContactoEntity>,
     eventos: List<EventoEntity>,
     puedeRegistrarGestion: Boolean,
+    onRegistrarEvento: (Long?) -> Unit,
     onRegistrarGestion: () -> Unit,
     onGestionarActivacion: () -> Unit,
     onEliminar: () -> Unit,
@@ -229,7 +233,16 @@ private fun DetalleContenido(
     val prioridad = Prioridad.desdeNombre(oportunidad.prioridad)
     val potencial = PotencialComercial.desdeNombre(oportunidad.potencialComercial)
     val estado = EstadoGestion.desdeNombre(oportunidad.estado)
-    val formatoFecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val permiteGestionActivacion = oportunidad.estado in setOf(
+        EstadoGestion.PARTICIPACION_CONFIRMADA.name,
+        EstadoGestion.ACTIVACION_REALIZADA.name,
+        EstadoGestion.ACTIVACION_CANCELADA.name
+    )
+    val formatoFecha = remember {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
     val organizacion = organizaciones.firstOrNull { it.id == oportunidad.organizacionId }
     val contacto = contactos.firstOrNull { it.id == oportunidad.contactoId }
     val evento = eventos.firstOrNull { it.id == oportunidad.eventoId }
@@ -284,6 +297,10 @@ private fun DetalleContenido(
             ) {
                 CampoDetalle("Descripción", oportunidad.descripcion)
                 CampoDetalle("Fuente u origen", oportunidad.fuente)
+                CampoDetalle("Comuna", oportunidad.comuna.ifBlank { "Sin comuna asociada" })
+                if (oportunidad.publicoEsperado.isNotBlank()) {
+                    CampoDetalle("Público esperado", oportunidad.publicoEsperado)
+                }
                 CampoDetalle("Prioridad", prioridad.etiqueta)
                 CampoDetalle("Potencial comercial", potencial.etiqueta)
                 CampoDetalle("Estado de gestión", estado.etiqueta)
@@ -292,13 +309,67 @@ private fun DetalleContenido(
                     "Contacto",
                     contacto?.let { "${it.nombre} · ${it.cargo}" } ?: "Sin contacto asociado"
                 )
-                CampoDetalle(
-                    "Evento o actividad",
-                    evento?.let {
-                        "${it.nombre} · ${formatoFechaEvento.format(Date(it.fecha))} · " +
-                            "${it.comuna} · ${organizacionEvento ?: "Sin organización"}"
-                    } ?: "Sin evento asociado"
-                )
+                if (evento == null) {
+                    CampoDetalle("Evento o actividad", "Sin evento asociado")
+                } else {
+                    CampoDetalle("Evento o actividad", evento.nombre)
+                    CampoDetalle(
+                        "Tipo de evento",
+                        TipoOportunidad.desdeNombre(evento.tipo).etiqueta
+                    )
+                    CampoDetalle(
+                        "Fecha de inicio",
+                        "${formatoFechaEvento.format(Date(evento.fecha))} ${evento.horaInicio}"
+                    )
+                    CampoDetalle(
+                        "Fecha de término",
+                        "${formatoFechaEvento.format(Date(evento.fechaTermino ?: evento.fecha))} " +
+                            evento.horaTermino
+                    )
+                    CampoDetalle(
+                        "Dirección",
+                        listOf(evento.direccion, evento.comuna, evento.region)
+                            .filter(String::isNotBlank)
+                            .joinToString(", ")
+                    )
+                    CampoDetalle(
+                        "Organización responsable",
+                        organizacionEvento ?: "Sin organización"
+                    )
+                    if (evento.descripcion.isNotBlank()) {
+                        CampoDetalle("Descripción del evento", evento.descripcion)
+                    }
+                    if (evento.publicoEsperado.isNotBlank()) {
+                        CampoDetalle("Público esperado", evento.publicoEsperado)
+                    }
+                    if (evento.publicoObjetivo.isNotBlank()) {
+                        CampoDetalle(
+                            "Público objetivo",
+                            evento.publicoObjetivo.replace('|', ',')
+                        )
+                    }
+                    if (evento.asistentesEstimados != null) {
+                        CampoDetalle(
+                            "Asistentes estimados",
+                            evento.asistentesEstimados.toString()
+                        )
+                    }
+                    if (evento.condicionesParticipacion.isNotBlank()) {
+                        CampoDetalle("Condiciones", evento.condicionesParticipacion)
+                    }
+                    if (evento.requisitos.isNotBlank()) {
+                        CampoDetalle("Requisitos", evento.requisitos)
+                    }
+                    if (evento.costoReferencial != null) {
+                        CampoDetalle(
+                            "Costo referencial",
+                            evento.costoReferencial.toString()
+                        )
+                    }
+                    if (evento.espaciosDisponibles.isNotBlank()) {
+                        CampoDetalle("Espacios disponibles", evento.espaciosDisponibles)
+                    }
+                }
                 if (oportunidad.observaciones.isNotBlank()) {
                     CampoDetalle("Observaciones", oportunidad.observaciones)
                 }
@@ -309,7 +380,7 @@ private fun DetalleContenido(
         }
 
         Text(
-            text = "Creada: ${formatoFecha.format(Date(oportunidad.fechaCreacion))}" +
+            text = "Fecha de identificación: ${formatoFecha.format(Date(oportunidad.fechaCreacion))}" +
                 "\nÚltima actualización: ${formatoFecha.format(Date(oportunidad.fechaActualizacion))}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -319,15 +390,32 @@ private fun DetalleContenido(
             gestiones = gestiones,
             usuarios = usuarios,
             puedeRegistrar = puedeRegistrarGestion,
+            onRegistrarEvento = { onRegistrarEvento(oportunidad.eventoId) },
             onRegistrar = onRegistrarGestion
         )
 
-        OutlinedButton(
-            onClick = onGestionarActivacion,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Outlined.EventAvailable, contentDescription = null)
-            Text("Gestionar activación", modifier = Modifier.padding(start = 8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Gestión de activación",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            OutlinedButton(
+                onClick = onGestionarActivacion,
+                enabled = permiteGestionActivacion,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Outlined.EventAvailable, contentDescription = null)
+                Text("Gestionar activación", modifier = Modifier.padding(start = 8.dp))
+            }
+            if (!permiteGestionActivacion) {
+                Text(
+                    text = "La coordinación estará disponible cuando la participación quede confirmada.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         HistorialSeccion(
@@ -370,17 +458,12 @@ private fun GestionesSeccion(
     gestiones: List<GestionEntity>,
     usuarios: Map<Long, String>,
     puedeRegistrar: Boolean,
+    onRegistrarEvento: () -> Unit,
     onRegistrar: () -> Unit
 ) {
     val formatoFechaHora = remember {
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     }
-    val formatoFecha = remember {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-    }
-
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Gestiones y seguimientos",
@@ -402,7 +485,7 @@ private fun GestionesSeccion(
                     usuario = usuarios[gestion.usuarioId] ?: "Usuario",
                     fechaHora = formatoFechaHora.format(Date(gestion.fecha)),
                     fechaProximaAccion = gestion.fechaProximaAccion?.let {
-                        formatoFecha.format(Date(it))
+                        formatoFechaHora.format(Date(it))
                     }
                 )
             }
@@ -410,11 +493,18 @@ private fun GestionesSeccion(
 
         if (puedeRegistrar) {
             Button(
+                onClick = onRegistrarEvento,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Text("Registrar evento", modifier = Modifier.padding(start = 8.dp))
+            }
+            Button(
                 onClick = onRegistrar,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Outlined.Add, contentDescription = null)
-                Text("Registrar gestión", modifier = Modifier.padding(start = 8.dp))
+                Text("Registrar seguimiento", modifier = Modifier.padding(start = 8.dp))
             }
         }
     }
@@ -427,7 +517,8 @@ private fun TarjetaGestion(
     fechaHora: String,
     fechaProximaAccion: String?
 ) {
-    val tipo = TipoGestion.desdeNombre(gestion.tipo)
+    val tipoSeguimiento = TipoAccionSeguimiento.desdeNombre(gestion.tipo)
+    val tipoAnterior = TipoGestion.desdeNombre(gestion.tipo)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -445,7 +536,7 @@ private fun TarjetaGestion(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = tipo.etiqueta,
+                    text = tipoSeguimiento?.etiqueta ?: tipoAnterior.etiqueta,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -456,10 +547,12 @@ private fun TarjetaGestion(
                 )
             }
 
-            Text(
-                text = gestion.descripcion,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            if (gestion.descripcion.isNotBlank()) {
+                Text(
+                    text = gestion.descripcion,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             if (gestion.resultado.isNotBlank()) {
                 Text(

@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Logout
@@ -35,6 +36,7 @@ fun MenuScreen(
     perfil: String,
     onOportunidades: () -> Unit,
     onCatalogos: () -> Unit,
+    onCatalogoEventosExternos: () -> Unit,
     onEscanearQr: () -> Unit,
     onUbicacion: () -> Unit,
     onCerrarSesion: () -> Unit,
@@ -78,9 +80,16 @@ fun MenuScreen(
 
         TarjetaAcceso(
             icono = Icons.Outlined.Category,
-            titulo = "Catálogos",
-            descripcion = "Administra organizaciones, contactos y eventos de referencia.",
+            titulo = "Organizaciones y contactos",
+            descripcion = "Administra las organizaciones y sus contactos registrados.",
             onClick = onCatalogos
+        )
+
+        TarjetaAcceso(
+            icono = Icons.Outlined.Event,
+            titulo = "Catálogo de eventos externos",
+            descripcion = "Consulta registros y crea eventos mediante la API de prueba.",
+            onClick = onCatalogoEventosExternos
         )
 
         TarjetaAcceso(

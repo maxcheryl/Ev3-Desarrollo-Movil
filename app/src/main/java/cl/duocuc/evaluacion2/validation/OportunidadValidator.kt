@@ -50,6 +50,16 @@ object OportunidadValidator {
                 null
             } else {
                 "Selecciona un estado de gestión."
+            },
+            fechaIdentificacion = if (form.fechaCreacion == null) {
+                "Selecciona la fecha de identificación."
+            } else {
+                null
+            },
+            comuna = if (form.comuna.isBlank()) {
+                "La comuna es obligatoria."
+            } else {
+                null
             }
         )
     }

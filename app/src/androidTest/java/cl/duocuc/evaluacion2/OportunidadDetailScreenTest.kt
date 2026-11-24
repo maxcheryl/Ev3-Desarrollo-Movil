@@ -78,7 +78,7 @@ class OportunidadDetailScreenTest {
                     fuente = "Prueba instrumentada",
                     prioridad = Prioridad.ALTA.name,
                     potencialComercial = PotencialComercial.ALTO.name,
-                    estado = EstadoGestion.CONTACTO_PENDIENTE.name,
+                    estado = EstadoGestion.PARTICIPACION_CONFIRMADA.name,
                     responsableId = 1L
                 )
             )
@@ -138,6 +138,7 @@ class OportunidadDetailScreenTest {
                     eventoViewModel = eventoViewModel,
                     onVolver = { regresoSolicitado = true },
                     onEditar = {},
+                    onRegistrarEvento = {},
                     onRegistrarGestion = { registroGestionSolicitado = true },
                     onGestionarActivacion = { activacionSolicitada = true },
                     onEliminada = {}
@@ -153,7 +154,7 @@ class OportunidadDetailScreenTest {
         composeRule.onNodeWithText(nombreOportunidad).assertIsDisplayed()
         composeRule.onNodeWithText("Descripción visible en el detalle").assertIsDisplayed()
 
-        composeRule.onNodeWithText("Registrar gestión")
+        composeRule.onNodeWithText("Registrar seguimiento")
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()

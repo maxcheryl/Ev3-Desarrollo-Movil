@@ -4,6 +4,7 @@ import cl.duocuc.evaluacion2.data.local.GestionEntity
 import cl.duocuc.evaluacion2.data.local.OpportunityEntity
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
 import cl.duocuc.evaluacion2.data.model.Prioridad
+import cl.duocuc.evaluacion2.data.model.TipoAccionSeguimiento
 import cl.duocuc.evaluacion2.data.model.TipoAccionHistorial
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 
@@ -80,6 +81,7 @@ object HistorialDescripciones {
         if (anterior.observaciones != nueva.observaciones) campos += "Observaciones"
         if (anterior.codigoQr != nueva.codigoQr) campos += "Referencia QR"
         if (anterior.publicoEsperado != nueva.publicoEsperado) campos += "Público esperado"
+        if (anterior.comuna != nueva.comuna) campos += "Comuna"
 
         if (campos.isNotEmpty()) {
             val etiqueta = if (campos.size == 1) "Dato actualizado" else "Datos actualizados"
@@ -97,13 +99,16 @@ object HistorialDescripciones {
         estadoAnterior: String,
         estadoNuevo: String
     ): CambioHistorial {
+        val accionSeguimiento = TipoAccionSeguimiento.desdeNombre(gestion.tipo)
         val tipo = TipoGestion.desdeNombre(gestion.tipo)
-        val base = if (tipo == TipoGestion.GESTION) {
-            "Gestión registrada"
-        } else {
-            "Gestión de ${tipo.etiqueta} registrada"
+        val base = when {
+            accionSeguimiento != null -> "Seguimiento de ${accionSeguimiento.etiqueta} registrado"
+            tipo == TipoGestion.GESTION -> "Gestión registrada"
+            else -> "Gestión de ${tipo.etiqueta} registrada"
         }
-        val detalle = gestion.descripcion.trim().trimEnd('.', '!', '?')
+        val detalle = (gestion.descripcion.ifBlank { gestion.resultado })
+            .trim()
+            .trimEnd('.', '!', '?')
         val partes = mutableListOf(base)
         if (detalle.isNotBlank()) partes += detalle
         if (estadoAnterior != estadoNuevo) {

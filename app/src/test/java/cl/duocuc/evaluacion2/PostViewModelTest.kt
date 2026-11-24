@@ -36,6 +36,7 @@ class PostViewModelTest : StringSpec({
     "Mapea error de red timeout http y json y permite reintentar" { PostViewModelTestCases().mapeaErrorDeRedTimeoutHttpYJsonYPermiteReintentar() }
     "Integra POST PUT y DELETE con el estado de pantalla" { PostViewModelTestCases().integraPostPutYDeleteConElEstadoDePantalla() }
     "Informa campos obligatorios al crear publicaciones" { PostViewModelTestCases().informaCamposObligatoriosAlCrearPublicaciones() }
+    "Crea evento con sus campos y valida su identificador" { PostViewModelTestCases().creaEventoConSusCamposYValidaSuIdentificador() }
     "Informa errores HTTP al ejecutar mutaciones" { PostViewModelTestCases().informaErroresHttpAlEjecutarMutaciones() }
 })
 
@@ -146,6 +147,46 @@ private class PostViewModelTestCases {
         (viewModel.uiState.value.mutacionFallida) shouldBe true
         (viewModel.uiState.value.mensajeMutacion.orEmpty().contains("obligatorios")) shouldBe true
         coVerify(exactly = 0) { repository.crearPublicacion(any()) }
+    }
+
+    fun creaEventoConSusCamposYValidaSuIdentificador() = runTest {
+        val repository = mockk<PostRepository>()
+        coEvery { repository.obtenerPublicaciones() } returns emptyList()
+        coEvery { repository.crearPublicacion(any()) } returns
+            PostResponse(1, 101, "Feria", "Fecha: 2025-11-18 · Ubicación: Providencia · Organización: Agencia")
+
+        val viewModel = PostViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.crearEvento(
+            idEvento = "42",
+            nombreEvento = " Feria ",
+            fecha = " 2025-11-18 ",
+            ubicacion = " Providencia ",
+            organizacion = " Agencia "
+        )
+        advanceUntilIdle()
+
+        coVerify {
+            repository.crearPublicacion(
+                PostRequest(
+                    userId = 1,
+                    title = "Feria",
+                    body = "Fecha: 2025-11-18 · Ubicación: Providencia · Organización: Agencia",
+                    eventId = 42,
+                    eventName = "Feria",
+                    date = "2025-11-18",
+                    location = "Providencia",
+                    organization = "Agencia"
+                )
+            )
+        }
+        (viewModel.uiState.value.mutacionFallida) shouldBe false
+
+        viewModel.crearEvento("abc", "Feria", "2025-11-18", "Providencia", "Agencia")
+        advanceUntilIdle()
+        (viewModel.uiState.value.mutacionFallida) shouldBe true
+        coVerify(exactly = 1) { repository.crearPublicacion(any()) }
     }
 
     fun informaErroresHttpAlEjecutarMutaciones() = runTest {

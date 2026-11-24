@@ -13,7 +13,12 @@ enum class PerfilUsuario(val etiqueta: String) {
 enum class TipoOrganizacion(val etiqueta: String) {
     EMPRESA("Empresa"),
     MUNICIPALIDAD("Municipalidad"),
-    INSTITUCION("Institución"),
+    INSTITUCION_PUBLICA("Institución pública"),
+    INSTITUCION_PRIVADA("Institución privada"),
+    ORGANIZADOR_EVENTOS("Organizador de eventos"),
+    CENTRO_COMERCIAL("Centro comercial"),
+    ASOCIACION("Asociación"),
+    INSTITUCION("Institución (sin especificar)"),
     OTRA("Otra");
 
     companion object {
@@ -30,6 +35,26 @@ enum class TipoGestion(val etiqueta: String) {
     companion object {
         fun desdeNombre(nombre: String): TipoGestion =
             entries.firstOrNull { it.name == nombre } ?: GESTION
+    }
+}
+
+enum class TipoAccionSeguimiento(val etiqueta: String) {
+    INVESTIGACION_INICIAL("Investigación inicial"),
+    BUSQUEDA_CONTACTO("Búsqueda de contacto"),
+    PRIMER_CONTACTO("Primer contacto"),
+    ENVIO_PRESENTACION("Envío de presentación"),
+    ENVIO_PROPUESTA("Envío de propuesta"),
+    SOLICITUD_ANTECEDENTES("Solicitud de antecedentes"),
+    REUNION("Reunión"),
+    LLAMADA("Llamada"),
+    SEGUIMIENTO("Seguimiento"),
+    RECEPCION_RESPUESTA("Recepción de respuesta"),
+    CONFIRMACION("Confirmación"),
+    CIERRE("Cierre");
+
+    companion object {
+        fun desdeNombre(nombre: String): TipoAccionSeguimiento? =
+            entries.firstOrNull { it.name == nombre }
     }
 }
 

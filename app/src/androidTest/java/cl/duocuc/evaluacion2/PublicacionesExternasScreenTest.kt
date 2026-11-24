@@ -56,6 +56,8 @@ class PublicacionesExternasScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("Consulta de registros").assertIsDisplayed()
+        composeRule.onNodeWithText("API de prueba").assertIsDisplayed()
         composeRule.onNodeWithText("Título de prueba").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Contenido de prueba").assertIsDisplayed()
         composeRule.onNodeWithText("Publicación #7 · Usuario #2").assertIsDisplayed()
@@ -93,9 +95,20 @@ class PublicacionesExternasScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Título").performTextInput("Nueva publicación")
-        composeRule.onNodeWithText("Contenido").performTextInput("Contenido nuevo")
-        composeRule.onNodeWithText("Enviar POST").performClick()
+        composeRule.onNodeWithText("ID del evento")
+            .performScrollTo()
+            .performTextInput("42")
+        composeRule.onNodeWithText("Nombre del evento")
+            .performScrollTo()
+            .performTextInput("Feria laboral")
+        composeRule.onNodeWithText("Fecha").performScrollTo().performTextInput("2025-11-18")
+        composeRule.onNodeWithText("Comuna / ubicación")
+            .performScrollTo()
+            .performTextInput("Providencia")
+        composeRule.onNodeWithText("Organización")
+            .performScrollTo()
+            .performTextInput("Empresa de prueba")
+        composeRule.onNodeWithText("Enviar POST").performScrollTo().performClick()
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("POST exitoso", substring = true)
                 .fetchSemanticsNodes()
@@ -125,7 +138,12 @@ class PublicacionesExternasScreenTest {
         }
 
         composeRule.runOnIdle {
-            assertTrue(api.solicitudesCreacion.single().title == "Nueva publicación")
+            val evento = api.solicitudesCreacion.single()
+            assertTrue(evento.eventId == 42)
+            assertTrue(evento.eventName == "Feria laboral")
+            assertTrue(evento.date == "2025-11-18")
+            assertTrue(evento.location == "Providencia")
+            assertTrue(evento.organization == "Empresa de prueba")
             assertTrue(api.solicitudesActualizacion.single().title == "Publicación actualizada")
             assertTrue(api.idsEliminados.single() == 101)
         }
@@ -150,7 +168,12 @@ private class FakeAgenciaMaxApiService(
                 userId = publicacion.userId,
                 id = 101,
                 title = publicacion.title,
-                body = publicacion.body
+                body = publicacion.body,
+                eventId = publicacion.eventId,
+                eventName = publicacion.eventName,
+                date = publicacion.date,
+                location = publicacion.location,
+                organization = publicacion.organization
             )
         )
     }

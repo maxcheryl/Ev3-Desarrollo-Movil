@@ -22,6 +22,7 @@ data class OportunidadFormState(
     val contactoId: Long? = null,
     val responsableId: Long? = null,
     val publicoEsperado: String = "",
+    val comuna: String = "",
     val fechaCreacion: Long? = null
 )
 
@@ -33,11 +34,21 @@ data class OportunidadErrores(
     val fuente: String? = null,
     val prioridad: String? = null,
     val potencialComercial: String? = null,
-    val estado: String? = null
+    val estado: String? = null,
+    val fechaIdentificacion: String? = null,
+    val comuna: String? = null
 ) {
     val hayErrores: Boolean
         get() = listOf(
-            nombre, tipo, descripcion, fuente, prioridad, potencialComercial, estado
+            nombre,
+            tipo,
+            descripcion,
+            fuente,
+            prioridad,
+            potencialComercial,
+            estado,
+            fechaIdentificacion,
+            comuna
         ).any { it != null }
 }
 

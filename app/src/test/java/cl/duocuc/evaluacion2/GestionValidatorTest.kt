@@ -5,13 +5,13 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
-import cl.duocuc.evaluacion2.data.model.TipoGestion
+import cl.duocuc.evaluacion2.data.model.TipoAccionSeguimiento
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionFormState
 import cl.duocuc.evaluacion2.validation.GestionValidator
 
 class GestionValidatorTest : StringSpec({
     "Formulario valido no tiene errores" { GestionValidatorTestCases().formularioValidoNoTieneErrores() }
-    "Campos obligatorios vacios reportan errores" { GestionValidatorTestCases().camposObligatoriosVaciosReportanErrores() }
+    "Estado resultante es opcional" { GestionValidatorTestCases().estadoResultanteEsOpcional() }
     "Tipo y estado invalidos son rechazados" { GestionValidatorTestCases().tipoYEstadoInvalidosSonRechazados() }
     "Proxima accion y fecha son opcionales" { GestionValidatorTestCases().proximaAccionYFechaSonOpcionales() }
 })
@@ -19,7 +19,7 @@ class GestionValidatorTest : StringSpec({
 private class GestionValidatorTestCases {
 
     private fun formularioValido() = GestionFormState(
-        tipo = TipoGestion.CONTACTO.name,
+        tipo = TipoAccionSeguimiento.PRIMER_CONTACTO.name,
         estado = EstadoGestion.CONTACTO_REALIZADO.name,
         descripcion = "Llamada con la organización para coordinar la propuesta."
     )
@@ -29,13 +29,15 @@ private class GestionValidatorTestCases {
         (errores.hayErrores) shouldBe false
     }
 
-    fun camposObligatoriosVaciosReportanErrores() {
+    fun estadoResultanteEsOpcional() {
         val errores = GestionValidator.validar(GestionFormState())
 
         (errores.tipo) shouldNotBe null
-        (errores.estado) shouldNotBe null
+        (errores.estado) shouldBe null
         (errores.descripcion) shouldNotBe null
         (errores.hayErrores) shouldBe true
+
+        (GestionValidator.validar(formularioValido().copy(estado = "")).hayErrores) shouldBe false
     }
 
     fun tipoYEstadoInvalidosSonRechazados() {

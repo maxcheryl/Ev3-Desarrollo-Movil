@@ -41,6 +41,15 @@ class OportunidadRepository(
 
     suspend fun buscarPorId(id: Long): OpportunityEntity? = dao.buscarPorId(id)
 
+    suspend fun asociarEvento(oportunidadId: Long, eventoId: Long) {
+        val filasActualizadas = dao.asociarEvento(
+            oportunidadId = oportunidadId,
+            eventoId = eventoId,
+            fechaActualizacion = System.currentTimeMillis()
+        )
+        check(filasActualizadas == 1) { "La oportunidad ya no está disponible." }
+    }
+
     suspend fun asignarResponsablesPendientes(responsableId: Long): Int =
         dao.assignNullResponsible(responsableId)
 

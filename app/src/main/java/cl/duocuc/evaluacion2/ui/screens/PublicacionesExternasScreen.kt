@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.model.PostResponse
 import cl.duocuc.evaluacion2.ui.viewmodels.PostViewModel
@@ -47,14 +49,26 @@ fun PublicacionesExternasScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var nuevoTitulo by remember { mutableStateOf("") }
-    var nuevoContenido by remember { mutableStateOf("") }
+    var nuevoIdEvento by remember { mutableStateOf("") }
+    var nuevoNombreEvento by remember { mutableStateOf("") }
+    var nuevaFecha by remember { mutableStateOf("") }
+    var nuevaUbicacion by remember { mutableStateOf("") }
+    var nuevaOrganizacion by remember { mutableStateOf("") }
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("API de prueba", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Consulta de registros", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "API de prueba",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -90,110 +104,142 @@ fun PublicacionesExternasScreen(
                     }
                 }
 
-                else -> Column(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = "JSONPlaceholder simula estos datos y no conserva los cambios.",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        Text(
+                            text = "JSONPlaceholder simula estos datos y no conserva los cambios.",
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
                         ) {
-                            Text(
-                                text = "Crear publicación (POST)",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            OutlinedTextField(
-                                value = nuevoTitulo,
-                                onValueChange = { nuevoTitulo = it },
-                                label = { Text("Título") },
-                                singleLine = true,
-                                enabled = !uiState.mutacionEnCurso,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = nuevoContenido,
-                                onValueChange = { nuevoContenido = it },
-                                label = { Text("Contenido") },
-                                enabled = !uiState.mutacionEnCurso,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Button(
-                                onClick = {
-                                    viewModel.crearPublicacion(nuevoTitulo, nuevoContenido)
-                                },
-                                enabled = !uiState.mutacionEnCurso,
-                                modifier = Modifier.fillMaxWidth()
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    if (uiState.mutacionEnCurso) {
-                                        "Enviando..."
-                                    } else {
-                                        "Enviar POST"
-                                    }
+                                    text = "Crear Evento (POST)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
+                                OutlinedTextField(
+                                    value = nuevoIdEvento,
+                                    onValueChange = { nuevoIdEvento = it },
+                                    label = { Text("ID del evento") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number
+                                    ),
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = nuevoNombreEvento,
+                                    onValueChange = { nuevoNombreEvento = it },
+                                    label = { Text("Nombre del evento") },
+                                    singleLine = true,
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = nuevaFecha,
+                                    onValueChange = { nuevaFecha = it },
+                                    label = { Text("Fecha") },
+                                    singleLine = true,
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = nuevaUbicacion,
+                                    onValueChange = { nuevaUbicacion = it },
+                                    label = { Text("Comuna / ubicación") },
+                                    singleLine = true,
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = nuevaOrganizacion,
+                                    onValueChange = { nuevaOrganizacion = it },
+                                    label = { Text("Organización") },
+                                    singleLine = true,
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Button(
+                                    onClick = {
+                                        viewModel.crearEvento(
+                                            nuevoIdEvento,
+                                            nuevoNombreEvento,
+                                            nuevaFecha,
+                                            nuevaUbicacion,
+                                            nuevaOrganizacion
+                                        )
+                                    },
+                                    enabled = !uiState.mutacionEnCurso,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        if (uiState.mutacionEnCurso) {
+                                            "Enviando..."
+                                        } else {
+                                            "Enviar POST"
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                     uiState.mensajeMutacion?.let { mensaje ->
-                        Text(
-                            text = mensaje,
-                            color = if (uiState.mutacionFallida) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        item {
+                            Text(
+                                text = mensaje,
+                                color = if (uiState.mutacionFallida) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                     if (uiState.publicaciones.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        item {
                             Text(
                                 text = "La API no devolvió publicaciones.",
-                                modifier = Modifier.padding(24.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 24.dp
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(uiState.publicaciones, key = PostResponse::id) { publicacion ->
-                                TarjetaPublicacion(
-                                    publicacion = publicacion,
-                                    mutacionEnCurso = uiState.mutacionEnCurso,
-                                    onActualizar = { titulo, contenido ->
-                                        viewModel.actualizarPublicacion(
-                                            publicacion,
-                                            titulo,
-                                            contenido
-                                        )
-                                    },
-                                    onEliminar = {
-                                        viewModel.eliminarPublicacion(publicacion.id)
-                                    }
-                                )
-                            }
+                        items(uiState.publicaciones, key = PostResponse::id) { publicacion ->
+                            TarjetaPublicacion(
+                                publicacion = publicacion,
+                                mutacionEnCurso = uiState.mutacionEnCurso,
+                                onActualizar = { titulo, contenido ->
+                                    viewModel.actualizarPublicacion(
+                                        publicacion,
+                                        titulo,
+                                        contenido
+                                    )
+                                },
+                                onEliminar = {
+                                    viewModel.eliminarPublicacion(publicacion.id)
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
                         }
                     }
                 }
@@ -207,7 +253,8 @@ private fun TarjetaPublicacion(
     publicacion: PostResponse,
     mutacionEnCurso: Boolean,
     onActualizar: (String, String) -> Unit,
-    onEliminar: () -> Unit
+    onEliminar: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var editando by remember(publicacion.id, publicacion.title, publicacion.body) {
         mutableStateOf(false)
@@ -220,7 +267,7 @@ private fun TarjetaPublicacion(
         mutableStateOf(publicacion.body)
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -243,7 +290,7 @@ private fun TarjetaPublicacion(
                 )
             } else {
                 Text(
-                    text = publicacion.title,
+                    text = publicacion.eventName ?: publicacion.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -257,6 +304,13 @@ private fun TarjetaPublicacion(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            publicacion.eventId?.let { id ->
+                Text(
+                    text = "ID del evento #$id",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (editando) {
                     Button(

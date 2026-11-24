@@ -32,6 +32,7 @@ import cl.duocuc.evaluacion2.ui.screens.PantallaInicialScreen
 import cl.duocuc.evaluacion2.ui.screens.PublicacionesExternasScreen
 import cl.duocuc.evaluacion2.ui.screens.RegistrarGestionScreen
 import cl.duocuc.evaluacion2.ui.screens.UbicacionScreen
+import cl.duocuc.evaluacion2.data.model.PerfilUsuario
 import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.ActivacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
@@ -60,8 +61,12 @@ sealed class Rutas(val route: String) {
     }
     object Eventos : Rutas("eventos")
     object PublicacionesExternas : Rutas("publicaciones_externas")
-    object FormularioEvento : Rutas("formulario_evento?id={id}") {
+    object FormularioEvento : Rutas(
+        "formulario_evento?id={id}&oportunidadId={oportunidadId}"
+    ) {
         fun conId(id: Long) = "formulario_evento?id=$id"
+        fun paraOportunidad(id: Long, oportunidadId: Long) =
+            "formulario_evento?id=$id&oportunidadId=$oportunidadId"
     }
     object EscanearQr : Rutas("escanear_qr")
     object Ubicacion : Rutas("ubicacion")
@@ -151,6 +156,9 @@ fun AppNavigation(
                 perfil = usuario?.perfil?.etiqueta ?: "",
                 onOportunidades = { navController.navigate(Rutas.Oportunidades.route) },
                 onCatalogos = { navController.navigate(Rutas.Catalogos.route) },
+                onCatalogoEventosExternos = {
+                    navController.navigate(Rutas.PublicacionesExternas.route)
+                },
                 onEscanearQr = { navController.navigate(Rutas.EscanearQr.route) },
                 onUbicacion = { navController.navigate(Rutas.Ubicacion.route) },
                 onCerrarSesion = {
@@ -168,8 +176,7 @@ fun AppNavigation(
             CatalogosScreen(
                 onVolver = { navController.popBackStack() },
                 onOrganizaciones = { navController.navigate(Rutas.Organizaciones.route) },
-                onContactos = { navController.navigate(Rutas.Contactos.route) },
-                onEventos = { navController.navigate(Rutas.Eventos.route) }
+                onContactos = { navController.navigate(Rutas.Contactos.route) }
             )
         }
 
@@ -247,7 +254,8 @@ fun AppNavigation(
                 },
                 onConsultarApi = {
                     navController.navigate(Rutas.PublicacionesExternas.route)
-                }
+                },
+                puedeEditar = usuario?.perfil == PerfilUsuario.EJECUTIVO_COMERCIAL
             )
         }
 
@@ -264,13 +272,20 @@ fun AppNavigation(
                 navArgument("id") {
                     type = NavType.LongType
                     defaultValue = 0L
+                },
+                navArgument("oportunidadId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
                 }
             )
         ) { entry ->
             val id = entry.arguments?.getLong("id") ?: 0L
+            val oportunidadId = entry.arguments?.getLong("oportunidadId")
+                ?.takeIf { it > 0L }
             EventoFormScreen(
                 viewModel = eventoViewModel,
                 eventoId = id,
+                oportunidadId = oportunidadId,
                 onVolver = { navController.popBackStack() },
                 onGuardado = { navController.popBackStack() }
             )
@@ -327,6 +342,11 @@ fun AppNavigation(
                 onVolver = { navController.popBackStack() },
                 onEditar = {
                     navController.navigate(Rutas.FormularioOportunidad.conId(id))
+                },
+                onRegistrarEvento = { eventoId ->
+                    navController.navigate(
+                        Rutas.FormularioEvento.paraOportunidad(eventoId ?: 0L, id)
+                    )
                 },
                 onRegistrarGestion = {
                     navController.navigate(Rutas.FormularioGestion.conId(id))

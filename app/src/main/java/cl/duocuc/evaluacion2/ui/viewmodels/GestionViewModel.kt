@@ -105,16 +105,6 @@ class GestionViewModel(
                 }
                 return@launch
             }
-            _editor.update { state ->
-                if (state.form.estado.isBlank()) {
-                    state.copy(
-                        form = state.form.copy(estado = oportunidad.estado),
-                        errores = state.errores.copy(estado = null)
-                    )
-                } else {
-                    state
-                }
-            }
         }
     }
 
@@ -159,8 +149,33 @@ class GestionViewModel(
 
     fun onFechaProximaAccionChange(valor: Long?) {
         _editor.update {
-            it.copy(form = it.form.copy(fechaProximaAccion = valor))
+            it.copy(
+                form = it.form.copy(
+                    fechaProximaAccion = valor,
+                    horaProximaAccion = when {
+                        valor == null -> it.form.horaProximaAccion
+                        it.form.horaProximaAccion.isBlank() -> "09:00"
+                        else -> it.form.horaProximaAccion
+                    }
+                )
+            )
         }
+    }
+
+    fun onFechaGestionChange(valor: Long?) {
+        _editor.update { it.copy(form = it.form.copy(fechaGestion = valor)) }
+    }
+
+    fun onHoraGestionChange(valor: String) {
+        _editor.update { it.copy(form = it.form.copy(horaGestion = valor)) }
+    }
+
+    fun onHoraProximaAccionChange(valor: String) {
+        _editor.update { it.copy(form = it.form.copy(horaProximaAccion = valor)) }
+    }
+
+    fun onObservacionesChange(valor: String) {
+        _editor.update { it.copy(form = it.form.copy(observaciones = valor)) }
     }
 
     fun guardar(onListo: () -> Unit) {
@@ -222,14 +237,21 @@ class GestionViewModel(
                     oportunidadId = oportunidadId,
                     usuarioId = usuario.id,
                     tipo = actual.form.tipo,
-                    descripcion = actual.form.descripcion.trim(),
+                    descripcion = actual.form.observaciones.trim(),
                     resultado = actual.form.resultado.trim(),
                     proximaAccion = actual.form.proximaAccion.trim(),
-                    fechaProximaAccion = actual.form.fechaProximaAccion,
-                    fecha = System.currentTimeMillis()
+                    fechaProximaAccion = actual.form.fechaProximaAccion?.let {
+                        combinarFechaHora(it, actual.form.horaProximaAccion)
+                    },
+                    fecha = actual.form.fechaGestion?.let {
+                        combinarFechaHora(it, actual.form.horaGestion)
+                    } ?: System.currentTimeMillis()
                 )
 
-                repository.registrar(gestion, actual.form.estado)
+                repository.registrar(
+                    gestion,
+                    actual.form.estado.takeIf(String::isNotBlank)
+                )
                 _editor.value = GestionEditorUiState()
                 onListo()
             } catch (e: CancellationException) {
@@ -243,6 +265,26 @@ class GestionViewModel(
                 }
             }
         }
+    }
+
+    private fun combinarFechaHora(fecha: Long, hora: String): Long {
+        val partes = hora.split(':')
+        val horaNumerica = partes.getOrNull(0)?.toIntOrNull() ?: return fecha
+        val minutoNumerico = partes.getOrNull(1)?.toIntOrNull() ?: return fecha
+        val selector = java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("UTC")
+        ).apply { timeInMillis = fecha }
+        val calendar = java.util.Calendar.getInstance().apply {
+            timeInMillis = fecha
+            set(java.util.Calendar.YEAR, selector.get(java.util.Calendar.YEAR))
+            set(java.util.Calendar.MONTH, selector.get(java.util.Calendar.MONTH))
+            set(java.util.Calendar.DAY_OF_MONTH, selector.get(java.util.Calendar.DAY_OF_MONTH))
+            set(java.util.Calendar.HOUR_OF_DAY, horaNumerica)
+            set(java.util.Calendar.MINUTE, minutoNumerico)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        return calendar.timeInMillis
     }
 
     companion object {

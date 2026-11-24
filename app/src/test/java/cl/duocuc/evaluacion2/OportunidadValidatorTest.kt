@@ -31,6 +31,8 @@ private class OportunidadValidatorTestCases {
         prioridad = Prioridad.ALTA.name,
         potencialComercial = PotencialComercial.ALTO.name,
         estado = EstadoGestion.EVENTO_IDENTIFICADO.name,
+        fechaCreacion = 1_700_000_000_000,
+        comuna = "Santiago",
         observaciones = ""
     )
 
@@ -48,6 +50,8 @@ private class OportunidadValidatorTestCases {
         (errores.fuente) shouldNotBe null
         (errores.prioridad) shouldNotBe null
         (errores.potencialComercial) shouldNotBe null
+        (errores.fechaIdentificacion) shouldNotBe null
+        (errores.comuna) shouldNotBe null
         // El estado inicia en «Evento identificado», por lo que ya es válido
         (errores.estado) shouldBe null
         (errores.hayErrores) shouldBe true

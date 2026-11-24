@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 
 class GestionRepositoryTest : StringSpec({
     "Registra gestion actualiza estado y agrega historial" { GestionRepositoryTestCases().registraGestionActualizaEstadoYAgregaHistorial() }
+    "Registra seguimiento sin cambiar estado" { GestionRepositoryTestCases().registraSeguimientoSinCambiarEstado() }
     "Oportunidad inexistente no registra gestion" { GestionRepositoryTestCases().oportunidadInexistenteNoRegistraGestion() }
     "Flujos y consulta de oportunidad se delegan" { GestionRepositoryTestCases().flujosYConsultaDeOportunidadSeDelegan() }
 })
@@ -81,6 +82,31 @@ private class GestionRepositoryTestCases {
         (error?.message) shouldBe ("La oportunidad ya no está disponible.")
         coVerify(exactly = 0) { gestionDao.insert(any()) }
         coVerify(exactly = 0) { historialDao.insert(any()) }
+    }
+
+    fun registraSeguimientoSinCambiarEstado() = runBlocking {
+        val oportunidad = oportunidad(estado = "CONTACTO_PENDIENTE")
+        val gestion = GestionEntity(
+            oportunidadId = 2,
+            usuarioId = 7,
+            tipo = "SEGUIMIENTO",
+            descripcion = "Respuesta pendiente"
+        )
+        coEvery { opportunityDao.buscarPorId(2) } returns oportunidad
+        coEvery { gestionDao.insert(gestion) } returns 22
+        coEvery { historialDao.insert(any()) } returns 1
+
+        (repository.registrar(gestion, null)) shouldBe (22L)
+
+        coVerify(exactly = 0) { opportunityDao.update(any()) }
+        coVerify {
+            historialDao.insert(match {
+                it.oportunidadId == 2L &&
+                    it.usuarioId == 7L &&
+                    it.tipoAccion == "GESTION" &&
+                    it.descripcion.contains("Seguimiento")
+            })
+        }
     }
 
     fun flujosYConsultaDeOportunidadSeDelegan() = runBlocking {

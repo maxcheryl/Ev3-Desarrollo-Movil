@@ -27,6 +27,7 @@ class OportunidadRepositoryTest : StringSpec({
     "Completa historial usando responsable ousuario predeterminado" { OportunidadRepositoryTestCases().completaHistorialUsandoResponsableOUsuarioPredeterminado() }
     "Semilla solo inserta cuando no hay oportunidades" { OportunidadRepositoryTestCases().semillaSoloInsertaCuandoNoHayOportunidades() }
     "Metodos de consulta y asignacion delegan al dao" { OportunidadRepositoryTestCases().metodosDeConsultaYAsignacionDeleganAlDao() }
+    "Asocia evento a la oportunidad y falla si desaparece" { OportunidadRepositoryTestCases().asociaEventoALaOportunidadYFallaSiDesaparece() }
 })
 
 private class OportunidadRepositoryTestCases {
@@ -162,6 +163,24 @@ private class OportunidadRepositoryTestCases {
         (repository.contar()) shouldBe (1)
         (repository.buscarPorId(3)) shouldBe (opportunity)
         (repository.asignarResponsablesPendientes(8)) shouldBe (2)
+    }
+
+    fun asociaEventoALaOportunidadYFallaSiDesaparece() = runBlocking {
+        coEvery { opportunityDao.asociarEvento(4, 12, any()) } returns 1
+        repository.asociarEvento(oportunidadId = 4, eventoId = 12)
+        coVerify {
+            opportunityDao.asociarEvento(
+                oportunidadId = 4,
+                eventoId = 12,
+                fechaActualizacion = match { it > 0L }
+            )
+        }
+
+        coEvery { opportunityDao.asociarEvento(5, 12, any()) } returns 0
+        val error = runCatching {
+            repository.asociarEvento(oportunidadId = 5, eventoId = 12)
+        }.exceptionOrNull()
+        (error?.message) shouldBe ("La oportunidad ya no está disponible.")
     }
 
     private fun oportunidad(

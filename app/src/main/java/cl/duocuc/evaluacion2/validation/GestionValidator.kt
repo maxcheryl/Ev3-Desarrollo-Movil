@@ -1,6 +1,7 @@
 package cl.duocuc.evaluacion2.validation
 
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
+import cl.duocuc.evaluacion2.data.model.TipoAccionSeguimiento
 import cl.duocuc.evaluacion2.data.model.TipoGestion
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionErrores
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionFormState
@@ -12,15 +13,15 @@ object GestionValidator {
             tipo = if (esTipoValido(form.tipo)) {
                 null
             } else {
-                "Selecciona el tipo de gestión."
+                "Selecciona el tipo de acción."
             },
-            estado = if (esEstadoValido(form.estado)) {
+            estado = if (form.estado.isBlank() || esEstadoValido(form.estado)) {
                 null
             } else {
-                "Selecciona el estado resultante."
+                "Selecciona un estado resultante válido."
             },
-            descripcion = if (form.descripcion.isBlank()) {
-                "La descripción es obligatoria."
+            descripcion = if (form.descripcion.isBlank() && form.resultado.isBlank()) {
+                "El resultado de la gestión es obligatorio."
             } else {
                 null
             }
@@ -28,8 +29,14 @@ object GestionValidator {
     }
 
     fun esTipoValido(valor: String): Boolean =
-        runCatching { TipoGestion.valueOf(valor) }.isSuccess
+        TipoAccionSeguimiento.desdeNombre(valor) != null ||
+            runCatching { TipoGestion.valueOf(valor) }.isSuccess
 
     fun esEstadoValido(valor: String): Boolean =
-        runCatching { EstadoGestion.valueOf(valor) }.isSuccess
+        runCatching { EstadoGestion.valueOf(valor) }
+            .getOrNull()
+            ?.let {
+                it != EstadoGestion.ACTIVACION_REALIZADA &&
+                    it != EstadoGestion.ACTIVACION_CANCELADA
+            } == true
 }

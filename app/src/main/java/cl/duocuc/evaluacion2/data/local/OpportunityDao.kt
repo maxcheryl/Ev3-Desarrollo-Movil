@@ -39,6 +39,16 @@ interface OpportunityDao {
     @Update
     suspend fun update(oportunidad: OpportunityEntity)
 
+    @Query(
+        "UPDATE oportunidades SET eventoId = :eventoId, " +
+            "fechaActualizacion = :fechaActualizacion WHERE id = :oportunidadId"
+    )
+    suspend fun asociarEvento(
+        oportunidadId: Long,
+        eventoId: Long,
+        fechaActualizacion: Long
+    ): Int
+
     @Query("UPDATE oportunidades SET responsableId = :responsableId WHERE responsableId IS NULL")
     suspend fun assignNullResponsible(responsableId: Long): Int
 

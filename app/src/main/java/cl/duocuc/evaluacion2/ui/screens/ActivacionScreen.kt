@@ -76,6 +76,7 @@ fun ActivacionScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaResultado by remember { mutableStateOf(false) }
     var errorArchivo by remember { mutableStateOf<String?>(null) }
     val formatoFecha = remember {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
@@ -146,6 +147,33 @@ fun ActivacionScreen(
         }
     }
 
+    if (mostrarSelectorFechaResultado) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.fechaRealizacion
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFechaResultado = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis
+                            ?.let(viewModel::onFechaRealizacionChange)
+                        mostrarSelectorFechaResultado = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarSelectorFechaResultado = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -182,6 +210,58 @@ fun ActivacionScreen(
                     text = state.oportunidadNombre,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
+                )
+                if (!state.oportunidadConfirmada) {
+                    Text(
+                        text = "La oportunidad debe estar confirmada antes de coordinar una activación.",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Text(
+                    text = "Evento asociado",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                state.evento?.let { evento ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(evento.nombre, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${formatoFecha.format(Date(evento.fecha))} · " +
+                                    "${formatoFecha.format(Date(evento.fechaTermino ?: evento.fecha))}"
+                            )
+                            Text(
+                                listOf(evento.direccion, evento.comuna, evento.region)
+                                    .filter(String::isNotBlank)
+                                    .joinToString(", ")
+                            )
+                            if (evento.condicionesParticipacion.isNotBlank()) {
+                                Text("Condiciones: ${evento.condicionesParticipacion}")
+                            }
+                            if (evento.espaciosDisponibles.isNotBlank()) {
+                                Text("Espacios: ${evento.espaciosDisponibles}")
+                            }
+                            if (evento.costoReferencial != null) {
+                                Text("Costo referencial: ${evento.costoReferencial}")
+                            }
+                            if (evento.requisitos.isNotBlank()) {
+                                Text("Requisitos: ${evento.requisitos}")
+                            }
+                        }
+                    }
+                } ?: Text(
+                    "No hay un evento vinculado a esta oportunidad.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 state.mensajeError?.let {
@@ -253,9 +333,18 @@ fun ActivacionScreen(
                     singleLine = false
                 )
 
+                CampoTextoFormulario(
+                    label = "Observaciones de coordinación",
+                    value = state.observacionesCoordinacion,
+                    error = null,
+                    onValueChange = viewModel::onObservacionesCoordinacionChange,
+                    singleLine = false
+                )
+
                 Button(
                     onClick = viewModel::guardarCoordinacion,
-                    enabled = !state.guardando && !state.cargando && state.usuarios.isNotEmpty(),
+                    enabled = !state.guardando && !state.cargando && state.usuarios.isNotEmpty() &&
+                        state.oportunidadConfirmada,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (state.guardando) {
@@ -343,12 +432,12 @@ fun ActivacionScreen(
                 )
                 val opcionesResultado = listOf(
                     OpcionDropdown(
-                        EstadoGestion.PARTICIPACION_CONFIRMADA.name,
-                        EstadoGestion.PARTICIPACION_CONFIRMADA.etiqueta
+                        EstadoGestion.ACTIVACION_REALIZADA.name,
+                        EstadoGestion.ACTIVACION_REALIZADA.etiqueta
                     ),
                     OpcionDropdown(
-                        EstadoGestion.OPORTUNIDAD_DESCARTADA.name,
-                        EstadoGestion.OPORTUNIDAD_DESCARTADA.etiqueta
+                        EstadoGestion.ACTIVACION_CANCELADA.name,
+                        EstadoGestion.ACTIVACION_CANCELADA.etiqueta
                     )
                 )
                 CampoDropdownFormulario(
@@ -359,8 +448,52 @@ fun ActivacionScreen(
                     error = null,
                     onSelected = viewModel::onResultadoFinalChange
                 )
+                OutlinedTextField(
+                    value = state.fechaRealizacion?.let { formatoFecha.format(Date(it)) }.orEmpty(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Fecha de realización") },
+                    placeholder = { Text("Selecciona una fecha") },
+                    trailingIcon = {
+                        IconButton(onClick = { mostrarSelectorFechaResultado = true }) {
+                            Icon(
+                                Icons.Outlined.CalendarMonth,
+                                contentDescription = "Seleccionar fecha de realización"
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 CampoTextoFormulario(
-                    label = "Observaciones",
+                    label = "Asistentes estimados",
+                    value = state.asistentesEstimados,
+                    error = null,
+                    onValueChange = viewModel::onAsistentesEstimadosChange,
+                    keyboardType = KeyboardType.Number
+                )
+                CampoTextoFormulario(
+                    label = "Contactos generados",
+                    value = state.contactosGenerados,
+                    error = null,
+                    onValueChange = viewModel::onContactosGeneradosChange,
+                    keyboardType = KeyboardType.Number
+                )
+                CampoTextoFormulario(
+                    label = "Personas interesadas",
+                    value = state.personasInteresadas,
+                    error = null,
+                    onValueChange = viewModel::onPersonasInteresadasChange,
+                    keyboardType = KeyboardType.Number
+                )
+                CampoTextoFormulario(
+                    label = "Inscripciones",
+                    value = state.inscripciones,
+                    error = null,
+                    onValueChange = viewModel::onInscripcionesChange,
+                    keyboardType = KeyboardType.Number
+                )
+                CampoTextoFormulario(
+                    label = "Observaciones del resultado",
                     value = state.observaciones,
                     error = null,
                     onValueChange = viewModel::onObservacionesChange,
@@ -376,12 +509,12 @@ fun ActivacionScreen(
                 Button(
                     onClick = viewModel::guardarResultado,
                     enabled = !state.guardando && state.activacionId != null &&
-                        state.resultadoFinal.isNotBlank(),
+                        state.resultadoFinal.isNotBlank() && state.oportunidadConfirmada,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         if (state.resultadoGuardado == null) {
-                            "Guardar resultado y cerrar oportunidad"
+                            "Guardar resultado"
                         } else {
                             "Actualizar resultado"
                         }

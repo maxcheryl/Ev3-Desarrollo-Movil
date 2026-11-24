@@ -4,5 +4,10 @@ data class PostResponse(
     val userId: Int,
     val id: Int,
     val title: String,
-    val body: String
+    val body: String,
+    val eventId: Int? = null,
+    val eventName: String? = null,
+    val date: String? = null,
+    val location: String? = null,
+    val organization: String? = null
 )

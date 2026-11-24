@@ -81,7 +81,10 @@ class OportunidadViewModel(
     /** Prepara el formulario para una oportunidad nueva. */
     fun beginNueva() {
         _editor.value = OportunidadEditorUiState(
-            form = OportunidadFormState(responsableId = sessionManager.actual?.id)
+            form = OportunidadFormState(
+                responsableId = sessionManager.actual?.id,
+                fechaCreacion = System.currentTimeMillis()
+            )
         )
     }
 
@@ -117,6 +120,7 @@ class OportunidadViewModel(
                 contactoId = existente.contactoId,
                 responsableId = existente.responsableId,
                 publicoEsperado = existente.publicoEsperado,
+                comuna = existente.comuna,
                 fechaCreacion = existente.fechaCreacion
             )
         )
@@ -194,6 +198,30 @@ class OportunidadViewModel(
         }
     }
 
+    fun onPublicoEsperadoChange(valor: String) {
+        _editor.update {
+            it.copy(form = it.form.copy(publicoEsperado = valor))
+        }
+    }
+
+    fun onFechaIdentificacionChange(valor: Long?) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(fechaCreacion = valor),
+                errores = it.errores.copy(fechaIdentificacion = null)
+            )
+        }
+    }
+
+    fun onComunaChange(valor: String) {
+        _editor.update {
+            it.copy(
+                form = it.form.copy(comuna = valor),
+                errores = it.errores.copy(comuna = null)
+            )
+        }
+    }
+
     fun onOrganizacionChange(valor: Long?) {
         _editor.update {
             it.copy(form = it.form.copy(organizacionId = valor))
@@ -267,6 +295,7 @@ class OportunidadViewModel(
             contactoId = actual.form.contactoId,
             responsableId = if (esNueva) usuario.id else actual.form.responsableId ?: usuario.id,
             publicoEsperado = actual.form.publicoEsperado.trim(),
+            comuna = actual.form.comuna.trim(),
             fechaCreacion = actual.form.fechaCreacion ?: System.currentTimeMillis()
         )
 

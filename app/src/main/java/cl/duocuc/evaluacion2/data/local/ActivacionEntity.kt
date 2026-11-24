@@ -1,5 +1,6 @@
 package cl.duocuc.evaluacion2.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -20,5 +21,7 @@ data class ActivacionEntity(
     val fecha: Long? = null,
     val costo: Double? = null,
     val requisitos: String = "",
+    @ColumnInfo(defaultValue = "''")
+    val observacionesCoordinacion: String = "",
     val fechaCreacion: Long = System.currentTimeMillis()
 )

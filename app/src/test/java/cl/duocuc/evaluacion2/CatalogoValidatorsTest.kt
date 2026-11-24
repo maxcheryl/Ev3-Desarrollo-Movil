@@ -66,18 +66,35 @@ private class CatalogoValidatorsTestCases {
         val valid = EventoFormState(
             nombre = "Feria de bienestar",
             fecha = 1L,
+            fechaTermino = 2L,
+            region = "Metropolitana",
             comuna = "Santiago",
             organizacionId = 3L
         )
         (EventoValidator.validar(valid).hayErrores) shouldBe false
 
         val invalid = EventoValidator.validar(
-            valid.copy(nombre = "X", fecha = null, comuna = "", organizacionId = null)
+            valid.copy(
+                nombre = "X",
+                fecha = null,
+                fechaTermino = null,
+                region = "",
+                comuna = "",
+                organizacionId = null
+            )
         )
         (invalid.hayErrores) shouldBe true
         (invalid.nombre) shouldNotBe null
         (invalid.fecha) shouldNotBe null
+        (invalid.fechaTermino) shouldNotBe null
+        (invalid.region) shouldNotBe null
         (invalid.comuna) shouldNotBe null
         (invalid.organizacionId) shouldNotBe null
+
+        val cantidadesInvalidas = EventoValidator.validar(
+            valid.copy(asistentesEstimados = "-1", costoReferencial = "-100")
+        )
+        (cantidadesInvalidas.asistentesEstimados) shouldNotBe null
+        (cantidadesInvalidas.costoReferencial) shouldNotBe null
     }
 }

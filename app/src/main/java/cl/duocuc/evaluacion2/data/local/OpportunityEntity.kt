@@ -39,6 +39,7 @@ data class OpportunityEntity(
     val contactoId: Long? = null,
     val responsableId: Long? = null,
     @ColumnInfo(defaultValue = "''") val publicoEsperado: String = "",
+    @ColumnInfo(defaultValue = "''") val comuna: String = "",
     val fechaCreacion: Long = System.currentTimeMillis(),
     val fechaActualizacion: Long = System.currentTimeMillis()
 )

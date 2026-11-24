@@ -19,8 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -33,7 +36,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,6 +61,10 @@ import cl.duocuc.evaluacion2.ui.viewmodels.ContactoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.EventoViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OrganizacionViewModel
 import cl.duocuc.evaluacion2.ui.viewmodels.OportunidadViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Formulario de creación y edición de oportunidades.
@@ -81,6 +90,41 @@ fun FormularioOportunidadScreen(
 
     LaunchedEffect(id) {
         if (id == 0L) viewModel.beginNueva() else viewModel.beginEditar(id)
+    }
+
+    var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    val formatoFecha = remember {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+
+    if (mostrarSelectorFecha) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = editor.form.fechaCreacion
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFecha = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let(
+                            viewModel::onFechaIdentificacionChange
+                        )
+                        mostrarSelectorFecha = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarSelectorFecha = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 
     Scaffold(
@@ -133,12 +177,55 @@ fun FormularioOportunidadScreen(
             )
 
             FormDropdown(
-                label = "Tipo de oportunidad *",
+                label = "Tipo de Evento / Actividad *",
                 selected = editor.form.tipo,
                 options = TipoOportunidad.entries.map { OpcionDropdown(it.name, it.etiqueta) },
                 placeholder = "Seleccione un tipo",
                 error = editor.errores.tipo,
                 onSelected = viewModel::onTipoChange
+            )
+
+            FormTextField(
+                label = "Público esperado (opcional)",
+                value = editor.form.publicoEsperado,
+                error = null,
+                onValueChange = viewModel::onPublicoEsperadoChange
+            )
+
+            OutlinedTextField(
+                value = editor.form.fechaCreacion?.let {
+                    formatoFecha.format(Date(it))
+                }.orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Fecha de identificación *") },
+                trailingIcon = {
+                    if (id == 0L) {
+                        IconButton(onClick = { mostrarSelectorFecha = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.CalendarMonth,
+                                contentDescription = "Seleccionar fecha de identificación"
+                            )
+                        }
+                    }
+                },
+                isError = editor.errores.fechaIdentificacion != null,
+                supportingText = editor.errores.fechaIdentificacion?.let {
+                    {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            FormTextField(
+                label = "Comuna *",
+                value = editor.form.comuna,
+                error = editor.errores.comuna,
+                onValueChange = viewModel::onComunaChange
             )
 
             FormTextField(

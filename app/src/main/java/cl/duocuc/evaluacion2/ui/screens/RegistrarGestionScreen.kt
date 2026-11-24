@@ -1,5 +1,6 @@
 package cl.duocuc.evaluacion2.ui.screens
 
+import android.app.TimePickerDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -44,15 +45,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duocuc.evaluacion2.data.model.EstadoGestion
-import cl.duocuc.evaluacion2.data.model.TipoGestion
+import cl.duocuc.evaluacion2.data.model.TipoAccionSeguimiento
 import cl.duocuc.evaluacion2.ui.components.CampoDropdownFormulario
 import cl.duocuc.evaluacion2.ui.components.CampoTextoFormulario
 import cl.duocuc.evaluacion2.ui.components.OpcionDropdown
 import cl.duocuc.evaluacion2.ui.viewmodels.GestionViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -68,41 +71,54 @@ fun RegistrarGestionScreen(
 ) {
     val editor by viewModel.editor.collectAsState()
     val esEjecutivo by viewModel.esEjecutivo.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(oportunidadId) {
         viewModel.seleccionarOportunidad(oportunidadId)
         viewModel.beginNueva()
     }
 
-    var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaGestion by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaProxima by remember { mutableStateOf(false) }
 
-    val opcionesTipo = TipoGestion.entries.map { OpcionDropdown(it.name, it.etiqueta) }
-    val opcionesEstado = EstadoGestion.entries.map { OpcionDropdown(it.name, it.etiqueta) }
+    val opcionesTipo = TipoAccionSeguimiento.entries.map {
+        OpcionDropdown(it.name, it.etiqueta)
+    }
+    val opcionesEstado = listOf(OpcionDropdown("", "Sin cambiar")) +
+        EstadoGestion.entries
+            .filterNot {
+                it == EstadoGestion.ACTIVACION_REALIZADA ||
+                    it == EstadoGestion.ACTIVACION_CANCELADA
+            }
+            .map { OpcionDropdown(it.name, it.etiqueta) }
     val formatoFecha = remember {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
     }
+    val formatoHora = remember {
+        SimpleDateFormat("HH:mm", Locale.getDefault())
+    }
 
-    if (mostrarSelectorFecha) {
+    if (mostrarSelectorFechaGestion) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = editor.form.fechaProximaAccion
+            initialSelectedDateMillis = editor.form.fechaGestion
         )
 
         DatePickerDialog(
-            onDismissRequest = { mostrarSelectorFecha = false },
+            onDismissRequest = { mostrarSelectorFechaGestion = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let(viewModel::onFechaProximaAccionChange)
-                        mostrarSelectorFecha = false
+                        datePickerState.selectedDateMillis?.let(viewModel::onFechaGestionChange)
+                        mostrarSelectorFechaGestion = false
                     }
                 ) {
                     Text("Aceptar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarSelectorFecha = false }) {
+                TextButton(onClick = { mostrarSelectorFechaGestion = false }) {
                     Text("Cancelar")
                 }
             }
@@ -111,11 +127,53 @@ fun RegistrarGestionScreen(
         }
     }
 
+    if (mostrarSelectorFechaProxima) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = editor.form.fechaProximaAccion
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFechaProxima = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis
+                            ?.let(viewModel::onFechaProximaAccionChange)
+                        mostrarSelectorFechaProxima = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarSelectorFechaProxima = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    fun abrirSelectorHora(valorActual: String, onChange: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        valorActual.split(':').takeIf { it.size == 2 }?.let {
+            calendar.set(Calendar.HOUR_OF_DAY, it[0].toIntOrNull() ?: 9)
+            calendar.set(Calendar.MINUTE, it[1].toIntOrNull() ?: 0)
+        }
+        TimePickerDialog(
+            context,
+            { _, hora, minuto -> onChange("%02d:%02d".format(hora, minuto)) },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
+        ).show()
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Registrar gestión", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Registrar seguimiento", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -142,13 +200,14 @@ fun RegistrarGestionScreen(
             }
 
             Text(
-                text = "Registra la interacción comercial y actualiza el estado de la oportunidad.",
+                text = "Registra la acción comercial. El estado de la oportunidad solo cambiará " +
+                    "si seleccionas un estado resultante.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             CampoDropdownFormulario(
-                label = "Tipo de gestión *",
+                label = "Tipo de acción *",
                 selected = editor.form.tipo,
                 options = opcionesTipo,
                 placeholder = "Selecciona el tipo",
@@ -157,26 +216,56 @@ fun RegistrarGestionScreen(
             )
 
             CampoDropdownFormulario(
-                label = "Estado resultante *",
+                label = "Estado resultante (opcional)",
                 selected = editor.form.estado,
                 options = opcionesEstado,
-                placeholder = "Selecciona el nuevo estado",
+                placeholder = "Sin cambiar",
                 error = editor.errores.estado,
                 onSelected = viewModel::onEstadoChange
             )
 
-            CampoTextoFormulario(
-                label = "Descripción *",
-                value = editor.form.descripcion,
-                error = editor.errores.descripcion,
-                onValueChange = viewModel::onDescripcionChange,
-                singleLine = false
+            OutlinedTextField(
+                value = editor.form.fechaGestion?.let {
+                    "${formatoFecha.format(Date(it))} " +
+                        editor.form.horaGestion.ifBlank { formatoHora.format(Date(it)) }
+                }.orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Fecha y hora *") },
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSelectorFechaGestion = true }) {
+                        Icon(
+                            Icons.Outlined.CalendarMonth,
+                            contentDescription = "Seleccionar fecha"
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedButton(
+                onClick = {
+                    abrirSelectorHora(
+                        editor.form.horaGestion.ifBlank {
+                            editor.form.fechaGestion?.let { formatoHora.format(Date(it)) }.orEmpty()
+                        },
+                        viewModel::onHoraGestionChange
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Hora de la gestión: " +
+                        editor.form.horaGestion.ifBlank {
+                            editor.form.fechaGestion?.let { formatoHora.format(Date(it)) }.orEmpty()
+                        }
+                )
+            }
+
             CampoTextoFormulario(
-                label = "Resultado",
+                label = "Resultado *",
                 value = editor.form.resultado,
-                error = null,
+                error = editor.errores.descripcion,
                 onValueChange = viewModel::onResultadoChange,
                 singleLine = false
             )
@@ -189,13 +278,16 @@ fun RegistrarGestionScreen(
             )
 
             OutlinedTextField(
-                value = editor.form.fechaProximaAccion?.let { formatoFecha.format(Date(it)) }.orEmpty(),
+                value = editor.form.fechaProximaAccion?.let {
+                    "${formatoFecha.format(Date(it))} " +
+                        editor.form.horaProximaAccion.ifBlank { formatoHora.format(Date(it)) }
+                }.orEmpty(),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Fecha de próxima acción") },
+                label = { Text("Fecha del próximo seguimiento") },
                 placeholder = { Text("Opcional") },
                 trailingIcon = {
-                    IconButton(onClick = { mostrarSelectorFecha = true }) {
+                    IconButton(onClick = { mostrarSelectorFechaProxima = true }) {
                         Icon(
                             imageVector = Icons.Outlined.CalendarMonth,
                             contentDescription = "Seleccionar fecha"
@@ -205,6 +297,27 @@ fun RegistrarGestionScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedButton(
+                onClick = {
+                    abrirSelectorHora(
+                        editor.form.horaProximaAccion.ifBlank {
+                            editor.form.fechaProximaAccion
+                                ?.let { formatoHora.format(Date(it)) }.orEmpty()
+                        },
+                        viewModel::onHoraProximaAccionChange
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Hora del próximo seguimiento: " +
+                        editor.form.horaProximaAccion.ifBlank {
+                            editor.form.fechaProximaAccion
+                                ?.let { formatoHora.format(Date(it)) } ?: "Seleccionar"
+                        }
+                )
+            }
+
             if (editor.form.fechaProximaAccion != null) {
                 TextButton(
                     onClick = { viewModel.onFechaProximaAccionChange(null) },
@@ -213,6 +326,14 @@ fun RegistrarGestionScreen(
                     Text("Quitar fecha")
                 }
             }
+
+            CampoTextoFormulario(
+                label = "Observaciones",
+                value = editor.form.observaciones,
+                error = null,
+                onValueChange = viewModel::onObservacionesChange,
+                singleLine = false
+            )
 
             AnimatedVisibility(
                 visible = editor.mensajeError != null,
@@ -248,7 +369,7 @@ fun RegistrarGestionScreen(
                     if (editor.guardando) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp))
                     } else {
-                        Text("Guardar")
+                        Text("Guardar seguimiento")
                     }
                 }
             }
